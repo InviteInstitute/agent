@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agent"
+version = "0.1.0"
+description = "The INVITE tutor's server: grounded feedback for students coding in VEXcode VR and ZANY."
+requires-python = ">=3.12"
+# The learner-model engine (and its apted dependency) is the agent-lm-packages submodule in
+# vendor/, installed before this package (see the Dockerfile and the CI workflow).
+dependencies = [
+    "fastapi==0.165.0",
+    "uvicorn==0.54.0",
+    "psycopg[binary]==3.3.9",
+    "psycopg-pool==3.3.3",
+    "openai==3.59.0",
+    "httpx==0.28.1",
+    "itsdangerous==2.2.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest==9.2.0", "ruff==0.17.6"]
+
+[tool.setuptools.packages.find]
+include = ["agent*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]
