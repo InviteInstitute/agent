@@ -410,7 +410,7 @@ describe("the walkthrough and research mode", () => {
     }
   });
 
-  it("keeps the Research view from students, and shows it with ?research", async () => {
+  it("keeps the Research view from students, and opens on it at /research", async () => {
     sessionStorage.setItem("agent:student", JSON.stringify(student));
     const routes = {
       "GET /v1/environments": [200, { environments: [VEX], voice: false }],
@@ -422,11 +422,11 @@ describe("the walkthrough and research mode", () => {
     expect(screen.queryByText("Research")).toBeNull();
     first.unmount();
 
-    window.history.replaceState(null, "", "/?research");
-    serve(routes);
+    window.history.replaceState(null, "", "/research");
+    serve({ ...routes, "GET /v1/research/config": [500, { detail: "not needed here" }] });
     render(<App />);
     expect(await screen.findByText("Research")).toBeInTheDocument();
-    expect(localStorage.getItem("agent:research")).toBe("true");
+    expect(await screen.findByText("Couldn't load the agent settings")).toBeInTheDocument();
   });
 
   it("says the reply is still coming when it is slow", async () => {

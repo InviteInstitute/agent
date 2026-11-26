@@ -31,8 +31,8 @@ Every reply is kept with the situation, prompt, model and settings that produced
 can always see why the agent said what it said!
 
 Students see only the chat. The research view, where a researcher picks a model and edits the
-prompt, appears in a browser that opened the page with `?research` once (`?research=0` hides it
-again). Its replies go to a research chat, apart from what students see.
+prompt, is at `/research` (agent.inviteai.org/research). Its replies go to a research chat, apart
+from what students see.
 
 ## Run it locally
 

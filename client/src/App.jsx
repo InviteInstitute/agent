@@ -29,18 +29,12 @@ const STUDENT_KEY = "agent:student";
 const SETTINGS_KEY = "agent:settings";
 const MUTED_KEY = "agent:muted";
 const TUTOR_KEY = "agent:tutor";
-const RESEARCH_KEY = "agent:research";
 // While the agent cannot see a student's code yet, it checks again this often.
 const WAITING_POLL_MS = 10000;
 
-// Research mode shows the Research view, for the team only. A link turns it on with ?research
-// and off with ?research=0, and the browser remembers it.
-export function researchMode(search = window.location.search) {
-  const query = new URLSearchParams(search);
-  if (query.has("research")) {
-    writeStored(localStorage, RESEARCH_KEY, query.get("research") !== "0" || null);
-  }
-  return readStored(localStorage, RESEARCH_KEY, false) === true;
+// The Research view is for the team, at /research. Students use / and never see it.
+export function researchMode(path = window.location.pathname) {
+  return path.replace(/\/+$/, "") === "/research";
 }
 const DELAYED = "The agent ran into a delay. Try asking again in a moment.";
 
@@ -64,7 +58,8 @@ export default function App() {
   const [signingIn, setSigningIn] = useState(false);
   const [signInError, setSignInError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [view, setView] = useState("chat");
+  // /research opens on the Research view, since that is what the team comes there for.
+  const [view, setView] = useState(() => (researchMode() ? "research" : "chat"));
   const [settings, setSettings] = useState(() => ({
     ...PRODUCTION_SETTINGS,
     ...readStored(localStorage, SETTINGS_KEY, {}),
