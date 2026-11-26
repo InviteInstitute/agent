@@ -46,7 +46,24 @@ export default function Panel({ label, header, footer, children, resizable, onMo
   const [rect, setRect] = useState(defaultRect);
   const gesture = useRef(null);
 
-  useEffect(() => onRect?.(rect), [rect, onRect]);
+  const element = useRef(null);
+
+  // Report the box the panel really has on screen (on a phone, CSS makes it a bottom sheet),
+  // after every move, every change of its content and every window resize.
+  useEffect(() => {
+    const report = () => {
+      const box = element.current?.getBoundingClientRect();
+      if (box) onRect?.(box);
+    };
+    report();
+    window.addEventListener("resize", report);
+    const observer = "ResizeObserver" in window ? new ResizeObserver(report) : null;
+    if (element.current) observer?.observe(element.current);
+    return () => {
+      window.removeEventListener("resize", report);
+      observer?.disconnect();
+    };
+  }, [rect, resizable, onRect]);
 
   // A smaller window pulls the panel back on screen.
   useEffect(() => {
@@ -98,6 +115,7 @@ export default function Panel({ label, header, footer, children, resizable, onMo
 
   return (
     <section
+      ref={element}
       className="agent-panel"
       aria-label={label}
       style={

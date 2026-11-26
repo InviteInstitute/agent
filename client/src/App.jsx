@@ -8,15 +8,25 @@ import {
   Switch,
   Tag,
 } from "@carbon/react";
-import { Chat as ChatIcon, Help, Logout, Minimize } from "@carbon/icons-react";
+import {
+  Chat as ChatIcon,
+  Help,
+  Logout,
+  Minimize,
+  VolumeMute,
+  VolumeUp,
+} from "@carbon/icons-react";
 import { api, readStored, writeStored } from "./api.js";
+import Avatar, { avatarInstalled } from "./Avatar.jsx";
 import Chat from "./Chat.jsx";
 import Panel from "./Panel.jsx";
 import Research, { PRODUCTION_SETTINGS, describeOverrides, overridesFor } from "./Research.jsx";
 import SignIn from "./SignIn.jsx";
+import VoiceButton, { canRecord } from "./VoiceButton.jsx";
 
 const STUDENT_KEY = "agent:student";
 const SETTINGS_KEY = "agent:settings";
+const MUTED_KEY = "agent:muted";
 const DELAYED = "The agent ran into a delay. Try asking again in a moment.";
 
 // A message as the server keeps it, the way the chat shows it.
@@ -27,6 +37,7 @@ export const fromServer = (m) => ({
   body: m.body,
   responseId: m.response_id,
   thumb: m.thumb,
+  speech: m.speech || null,
 });
 
 export default function App() {
@@ -49,6 +60,13 @@ export default function App() {
   const [open, setOpen] = useState(true);
   const [seen, setSeen] = useState(0);
   const [moving, setMoving] = useState(false);
+  const [panelRect, setPanelRect] = useState(null);
+  // The 3D tutor, when the site has it and a build is installed. Its voice is a choice per
+  // browser, so a quiet classroom stays quiet.
+  const [avatar, setAvatar] = useState(false);
+  const [muted, setMuted] = useState(() => readStored(localStorage, MUTED_KEY, false) === true);
+  const [hush, setHush] = useState(0);
+  const [voiceError, setVoiceError] = useState("");
 
   const overrides = overridesFor(settings, config);
   const custom = JSON.stringify(settings) !== JSON.stringify(PRODUCTION_SETTINGS);
@@ -61,6 +79,10 @@ export default function App() {
   }, []);
 
   useEffect(() => writeStored(localStorage, SETTINGS_KEY, settings), [settings]);
+  useEffect(() => writeStored(localStorage, MUTED_KEY, muted), [muted]);
+  useEffect(() => {
+    if (site?.avatar) avatarInstalled().then(setAvatar);
+  }, [site]);
 
   const loadConfig = useCallback(() => {
     setConfigError("");
@@ -138,7 +160,7 @@ export default function App() {
     setMessages((list) => [...list, studentTurn, pending]);
     setBusy(true);
     try {
-      const data = await api.turn(student, { message: text, overrides });
+      const data = await api.turn(student, { message: text, overrides, speak: avatar && !muted });
       const reply = data.reply;
       setMessages((list) =>
         list.map((m) =>
@@ -149,6 +171,7 @@ export default function App() {
                 origin: "reactive",
                 body: reply.body,
                 responseId: reply.response_id,
+                speech: reply.speech || null,
                 model: reply.model,
                 prompt: reply.prompt,
                 tokens: reply.tokens,
@@ -168,6 +191,26 @@ export default function App() {
     } finally {
       setBusy(false);
     }
+  };
+
+  // A spoken question becomes text first, then is asked like a typed one, so the student sees
+  // exactly what the tutor heard.
+  const askAloud = async (recording) => {
+    setVoiceError("");
+    setBusy(true);
+    let text = "";
+    try {
+      text = (await api.transcribe(student, recording)).text.trim();
+    } catch (error) {
+      setVoiceError(error.message);
+    } finally {
+      setBusy(false);
+    }
+    if (text) ask(text);
+    else
+      setVoiceError(
+        (current) => current || "I didn't catch that. Try again closer to the mic, or type it.",
+      );
   };
 
   const rate = async (message, thumb, comment) => {
@@ -190,6 +233,15 @@ export default function App() {
   const frame =
     session?.frame ?? (site?.environments.length === 1 ? site.environments[0].frame : null);
   const signedIn = Boolean(student && session);
+  // What the tutor says: the newest finished reply or check-in.
+  const latest = [...messages].reverse().find((m) => m.role === "agent" && !m.pending && !m.failed);
+  const utterance = latest
+    ? {
+        id: latest.id,
+        text: latest.body,
+        parts: latest.speech?.length ? latest.speech : [latest.body],
+      }
+    : null;
 
   if (siteError) {
     return (
@@ -220,6 +272,18 @@ export default function App() {
           <Button size="sm" renderIcon={Help} onClick={() => ask("")} disabled={busy}>
             Help
           </Button>
+          {avatar ? (
+            <IconButton
+              kind="ghost"
+              size="sm"
+              label={muted ? "Turn the tutor's voice on" : "Mute the tutor"}
+              align="bottom"
+              aria-pressed={muted}
+              onClick={() => setMuted((m) => !m)}
+            >
+              {muted ? <VolumeMute /> : <VolumeUp />}
+            </IconButton>
+          ) : null}
           <IconButton kind="ghost" size="sm" label="Sign out" align="bottom" onClick={signOut}>
             <Logout />
           </IconButton>
@@ -264,6 +328,16 @@ export default function App() {
         </div>
       )}
 
+      {avatar ? (
+        <Avatar
+          panel={open ? panelRect : null}
+          visible={signedIn}
+          utterance={signedIn ? utterance : null}
+          muted={muted}
+          hush={hush}
+        />
+      ) : null}
+
       {open ? (
         <Panel
           label="INVITE Agent chat"
@@ -271,6 +345,7 @@ export default function App() {
           footer={footer}
           resizable={signedIn}
           onMoving={setMoving}
+          onRect={setPanelRect}
         >
           {!signedIn ? (
             student && !signInError ? (
@@ -299,6 +374,20 @@ export default function App() {
               onRate={rate}
               busy={busy}
               customNote={overrides ? `Custom agent: ${describeOverrides(overrides)}.` : ""}
+              notice={voiceError}
+              composerExtra={
+                site.voice && canRecord() ? (
+                  <VoiceButton
+                    disabled={busy}
+                    onStart={() => {
+                      setVoiceError("");
+                      setHush((n) => n + 1);
+                    }}
+                    onRecorded={askAloud}
+                    onError={setVoiceError}
+                  />
+                ) : null
+              }
             />
           )}
         </Panel>

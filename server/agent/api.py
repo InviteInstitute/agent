@@ -8,11 +8,11 @@ from dataclasses import dataclass
 from typing import Annotated, Literal
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile
+from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 
-from agent import config, db, environments, gate, llm
+from agent import config, db, environments, gate, llm, speech
 from agent.environments import Environment
 from agent.feedback import NO_EVENTS, Reply, answer_question
 from agent.pedagogy import PLACEHOLDERS, PROMPT_TEMPLATE
@@ -78,6 +78,8 @@ class TurnRequest(BaseModel):
     # A researcher's settings. A turn with them goes to the research chat, kept apart from
     # what students see.
     overrides: Overrides | None = None
+    # The tutor will say the reply, so the server starts making the clips as it answers.
+    speak: bool = False
 
 
 class RatingRequest(BaseModel):
@@ -126,6 +128,7 @@ def list_environments() -> dict:
             for env in environments.enabled()
         ],
         "avatar": config.avatar_enabled(),
+        "voice": speech.voice_on(),
     }
 
 
@@ -219,6 +222,10 @@ def take_turn(who: StudentDep, body: TurnRequest, request: Request) -> dict:
         feedback_classes=reply.feedback or None,
         context=reply.context,
     )
+    said = None
+    if body.speak and config.avatar_enabled():
+        said = speech.chunks(reply.body)
+        speech.prepare(said)
     log.info(
         "replied to %s/%s (%s, %s): %s",
         env.id,
@@ -235,6 +242,7 @@ def take_turn(who: StudentDep, body: TurnRequest, request: Request) -> dict:
             "body": reply.body,
             "question_type": reply.question_type,
             "feedback": reply.feedback,
+            "speech": said,
             # The research chat shows what produced a reply. Students see only the reply.
             **(
                 {"model": reply.model, "prompt": reply.context.get("prompt"), "tokens": sum(spent)}
@@ -256,6 +264,7 @@ def checkin_event(row: dict) -> str:
         "response_id": str(row["response_id"]) if row["response_id"] else None,
         "trigger_type": row["trigger_type"],
         "created_at": row["created_at"].isoformat(),
+        "speech": speech.chunks(row["body"]) if config.avatar_enabled() else None,
     }
     return f"event: checkin\ndata: {json.dumps(payload)}\n\n"
 
@@ -316,3 +325,48 @@ def research_config(request: Request) -> dict:
         "placeholders": PLACEHOLDERS,
         "session_tokens": gate.usage(gate.budget_key(request.cookies.get(gate.COOKIE))),
     }
+
+
+# About a minute of the browser's Opus. The page stops recording at 30 seconds.
+MAX_RECORDING_BYTES = 1_000_000
+
+
+@router.post("/{environment}/students/{student_id}/transcriptions")
+def transcribe(who: StudentDep, request: Request, audio: Annotated[UploadFile, File()]) -> dict:
+    """A spoken question as text, which the page then asks like a typed one, so the student
+    sees what the tutor heard."""
+    if not speech.voice_on():
+        raise HTTPException(404, "This site does not take spoken questions.")
+    try:
+        gate.check(gate.budget_key(request.cookies.get(gate.COOKIE)))
+    except gate.OutOfTokens as error:
+        raise HTTPException(429, str(error)) from error
+    recording = audio.file.read(MAX_RECORDING_BYTES + 1)
+    if not recording:
+        raise HTTPException(400, "The recording was empty.")
+    if len(recording) > MAX_RECORDING_BYTES:
+        raise HTTPException(413, "That recording is too long. Keep it under a minute.")
+    try:
+        text = speech.transcribe(audio.filename or "question.webm", recording)
+    except Exception as error:
+        log.exception("transcription failed for %s", who.key)
+        raise HTTPException(
+            502, "Couldn't turn the recording into text. Try again, or type your question."
+        ) from error
+    return {"text": text}
+
+
+@router.get("/tts")
+def tts(text: str = Query(min_length=1, max_length=500)) -> Response:
+    """One spoken line as WAV, for the avatar to play and lip-sync. A whole clip, since Unity
+    plays a clip only once it has all of it."""
+    if not config.avatar_enabled():
+        raise HTTPException(404, "This site has no avatar.")
+    try:
+        clip = speech.audio(speech.spoken(text))
+    except Exception as error:
+        log.exception("speech failed")
+        raise HTTPException(500, "The tutor's voice is not working right now.") from error
+    return Response(
+        clip, media_type="audio/wav", headers={"Cache-Control": "private, max-age=3600"}
+    )

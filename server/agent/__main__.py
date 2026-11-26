@@ -3,6 +3,7 @@
 python -m agent migrate                      apply the database migrations
 python -m agent load vexcode-vr FILE...      keep the records in NDJSON log files
 python -m agent sync vexcode-vr              read every new record from the source
+python -m agent fetch-voice                  download the tutor's voice model
 """
 
 import json
@@ -28,6 +29,11 @@ def main(args: list[str]) -> None:
             print("\n".join(db.migrate()) or "nothing to apply")
         case ["load", environment_id, *paths] if paths:
             load(environment_id, paths)
+        case ["fetch-voice"]:
+            from agent import speech
+
+            speech.fetch_model()
+            print(f"the voice model is in {speech.MODELS}")
         case ["sync", environment_id]:
             print(f"{environments.all_environments()[environment_id].sync()} new records")
         case _:
