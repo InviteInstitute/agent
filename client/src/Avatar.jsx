@@ -16,8 +16,9 @@ export async function avatarInstalled(fetchImpl = fetch) {
   }
 }
 
-// Beside the panel the whole character shows. On a phone the panel spans the screen, so head
-// and shoulders peek over its top edge instead.
+// Beside the panel the whole character shows. A phone has no room beside the sheet, so there
+// the tutor's head and shoulders sit in the left end of the sheet's (or the note's) title bar,
+// the head just over its edge, and never stand on the code.
 export const FULL_BODY = 1;
 export const HEAD_AND_SHOULDERS = 0.42;
 const PHONE = 671;
@@ -25,11 +26,9 @@ const EDGE = 8;
 
 export function placeAvatar(panel, viewport) {
   if (viewport.width <= PHONE) {
-    const width = 120;
-    const height = 150;
     return {
       framing: HEAD_AND_SHOULDERS,
-      box: { width, height, left: panel.right - width - 16, top: panel.top - height + 30 },
+      box: { width: 64, height: 80, left: panel.left + 8, top: panel.top - 26 },
     };
   }
   const height = Math.round(Math.min(460, Math.max(280, panel.height * 0.72)));

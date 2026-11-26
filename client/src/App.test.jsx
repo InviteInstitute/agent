@@ -302,6 +302,59 @@ describe("check-ins", () => {
     expect(await screen.findAllByText("Still there?")).toHaveLength(1);
     expect(screen.getByText("Checking in")).toBeInTheDocument();
   });
+
+  it("slides a check-in out of the tab while the chat is tucked away", async () => {
+    const sources = [];
+    vi.stubGlobal(
+      "EventSource",
+      class {
+        constructor() {
+          this.listeners = {};
+          sources.push(this);
+        }
+        addEventListener(name, listener) {
+          this.listeners[name] = listener;
+        }
+        close() {}
+        send(data) {
+          this.listeners.checkin({ data: JSON.stringify(data) });
+        }
+      },
+    );
+    sessionStorage.setItem(
+      "agent:student",
+      JSON.stringify({ environment: "vexcode-vr", studentId: "S01", classCode: "" }),
+    );
+    serve({
+      "GET /v1/environments": [200, { environments: [VEX] }],
+      "GET /v1/vexcode-vr/students/S01": [200, signedIn()],
+    });
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByRole("region", { name: "Getting started" });
+
+    await user.click(screen.getByRole("button", { name: "Tuck the INVITE Agent away" }));
+    expect(screen.queryByRole("region", { name: "INVITE Agent chat" })).toBeNull();
+    act(() => sources[0].send({ id: 8, body: "Which piece first?", response_id: "r8" }));
+    const note = await screen.findByRole("region", { name: "The INVITE Agent is checking in" });
+    expect(note).toHaveTextContent("Which piece first?");
+    expect(
+      screen.getByRole("button", { name: "Open the INVITE Agent, 1 new" }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Reply" }));
+    expect(await screen.findByRole("region", { name: "INVITE Agent chat" })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "The INVITE Agent is checking in" })).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Tuck the INVITE Agent away" }));
+    act(() => sources[0].send({ id: 9, body: "Try a turn block.", response_id: "r9" }));
+    await screen.findByRole("region", { name: "The INVITE Agent is checking in" });
+    await user.click(screen.getByRole("button", { name: "Later" }));
+    expect(screen.queryByRole("region", { name: "The INVITE Agent is checking in" })).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Open the INVITE Agent, 1 new" }),
+    ).toBeInTheDocument();
+  });
 });
 
 describe("the tutor's voice", () => {

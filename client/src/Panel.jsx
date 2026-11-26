@@ -5,18 +5,31 @@ import { useEffect, useRef, useState } from "react";
 // dressed as a ZANY window: a VEX-blue title bar, then a light-blue tool bar.
 
 export const MIN_WIDTH = 360;
-export const MIN_HEIGHT = 480;
+// The agent's tab on the right edge (app.css .edge-tab). The window opens just left of it.
+const TAB = 40;
+// VEXcode VR's and ZANY's own bars take about the top 110px. The window opens below them, so
+// their buttons stay in reach.
+const TOOLBARS = 120;
+const SHORT = 720;
+export const MIN_HEIGHT = 360;
 const EDGE = 12;
 const CORNERS = ["nw", "ne", "sw", "se"];
 
 export const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
 export function defaultRect(viewport = { width: window.innerWidth, height: window.innerHeight }) {
-  const width = 420;
-  const height = clamp(640, MIN_HEIGHT, viewport.height - 2 * 24);
+  const width = 400;
+  // On a short window, such as a Chromebook's, it takes at most 60% of the height.
+  const height = clamp(
+    Math.min(620, Math.round(viewport.height * 0.6)),
+    MIN_HEIGHT,
+    viewport.height - TOOLBARS - 24,
+  );
   return {
-    x: Math.max(EDGE, viewport.width - width - 24),
-    y: Math.max(EDGE, viewport.height - height - 24),
+    x: Math.max(EDGE, viewport.width - width - TAB - EDGE),
+    // A short window opens it right under the bars instead, so the playground's Start, Reset
+    // and Step row along the bottom stays free.
+    y: viewport.height < SHORT ? TOOLBARS : Math.max(EDGE, viewport.height - height - 24),
     width,
     height,
   };
