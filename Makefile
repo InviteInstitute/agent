@@ -3,7 +3,7 @@ COMPOSE ?= docker compose
 TEST_DATABASE_URL ?= postgresql://agent:$(shell sed -n 's/^POSTGRES_PASSWORD=//p' .env 2>/dev/null)@127.0.0.1:5435/agent_test
 
 .DEFAULT_GOAL := help
-.PHONY: help install dev down test lint format build
+.PHONY: help install dev down test lint format build deploy
 
 help: ## List the targets
 	@grep -hE '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-10s %s\n", $$1, $$2}'
@@ -33,3 +33,6 @@ format: ## Format the server (ruff) and the client (prettier)
 
 build: ## Build the client into client/dist, which nginx serves
 	npm --prefix client run build
+
+deploy: ## Deploy main on the INVITE server (scripts/deploy.sh)
+	./scripts/deploy.sh

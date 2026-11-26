@@ -56,6 +56,18 @@ curl -s -X POST localhost:8005/v1/vexcode-vr/students/fixture_01_1/turns \
 `make test` runs the tests, `make lint` checks the code. The design and what is still to come
 are in [docs/design.md](docs/design.md).
 
+## On the INVITE server
+
+The site deploys from `main`. A push makes GitHub call the webhook, which runs
+`/usr/local/bin/agent-deploy.sh` (in InviteInstitute/infra), and that runs `scripts/deploy.sh`
+here as `ubuntu`. It pulls, rolls Postgres and the API with `docker compose -f compose.yml`, checks
+`/healthz`, then builds the client and swaps it in whole. nginx serves `client/dist` and
+`avatar/`, and passes `/v1` to the API on 127.0.0.1:8005.
+
+The checkout's `.env` holds the site's settings and secrets. The Lumen key comes from
+`/etc/lumen.env` and ZANY's read-only login from `/etc/agent/zany.env`. The Unity build of the
+tutor is installed by hand with `avatar/install.sh` and is kept across deploys.
+
 ## Layout
 
 | Path | What is there |
