@@ -543,9 +543,9 @@
       "name": "Title and Tool Bars",
       "kind": "nav",
       "refersTo": "title-bar",
-      "description": "The chat window's VEX Blue title bar with the ID pill, over the light-blue tool bar with the code status.",
-      "html": "<div class=\"ds-bars\"><div class=\"ds-title-bar\"><strong>INVITE Agent</strong><span class=\"ds-id-pill\"><span>Student ID</span><b>testermega</b></span><span style=\"flex:1\"></span><button class=\"ds-bar-button\">Hide</button></div><div class=\"ds-tool-bar\"><span class=\"ds-status\"><i></i>Watching your code</span></div></div>",
-      "css": ".ds-bars { width: 400px; font-family: 'Open Sans', system-ui, sans-serif; } .ds-title-bar { display: flex; align-items: center; gap: 8px; height: 54px; padding: 0 4px 0 16px; background: #4d90f0; color: #fff; font-size: 16px; font-weight: 800; } .ds-id-pill { display: flex; flex-direction: column; padding: 4px 12px; border-radius: 8px; background: #4382e4; box-shadow: inset 0 1px 2px rgb(0 30 90 / 0.2); line-height: 1.2; } .ds-id-pill span { font-size: 9px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: rgb(255 255 255 / 0.78); } .ds-id-pill b { font-size: 13px; font-weight: 700; } .ds-bar-button { height: 46px; min-width: 48px; padding: 2px 6px 0; border: 0; border-radius: 6px; background: transparent; color: #fff; font: 800 10px 'Open Sans', system-ui, sans-serif; letter-spacing: 0.03em; text-transform: uppercase; cursor: pointer; } .ds-bar-button:hover { background: rgb(255 255 255 / 0.18); } .ds-bar-button:focus-visible { outline: 2px solid #fff; outline-offset: -3px; } .ds-tool-bar { display: flex; align-items: center; height: 52px; padding: 0 4px 0 10px; background: #92bcec; } .ds-status { display: flex; align-items: center; gap: 7px; color: #163d73; font-size: 13px; font-weight: 700; } .ds-status i { width: 11px; height: 11px; border: 2px solid #fff; border-radius: 50%; background: #1f8a4c; box-sizing: border-box; }"
+      "description": "The chat window's VEX Blue title bar with the ID pill, over the light-blue tool bar.",
+      "html": "<div class=\"ds-bars\"><div class=\"ds-title-bar\"><strong>INVITE Agent</strong><span class=\"ds-id-pill\"><span>Student ID</span><b>testermega</b></span><span style=\"flex:1\"></span><button class=\"ds-bar-button\">Hide</button></div><div class=\"ds-tool-bar\"><button class=\"ds-bar-button\" style=\"color:#163d73\">Mute</button></div></div>",
+      "css": ".ds-bars { width: 400px; font-family: 'Open Sans', system-ui, sans-serif; } .ds-title-bar { display: flex; align-items: center; gap: 8px; height: 54px; padding: 0 4px 0 16px; background: #4d90f0; color: #fff; font-size: 16px; font-weight: 800; } .ds-id-pill { display: flex; flex-direction: column; padding: 4px 12px; border-radius: 8px; background: #4382e4; box-shadow: inset 0 1px 2px rgb(0 30 90 / 0.2); line-height: 1.2; } .ds-id-pill span { font-size: 9px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: rgb(255 255 255 / 0.78); } .ds-id-pill b { font-size: 13px; font-weight: 700; } .ds-bar-button { height: 46px; min-width: 48px; padding: 2px 6px 0; border: 0; border-radius: 6px; background: transparent; color: #fff; font: 800 10px 'Open Sans', system-ui, sans-serif; letter-spacing: 0.03em; text-transform: uppercase; cursor: pointer; } .ds-bar-button:hover { background: rgb(255 255 255 / 0.18); } .ds-bar-button:focus-visible { outline: 2px solid #fff; outline-offset: -3px; } .ds-tool-bar { display: flex; align-items: center; height: 52px; padding: 0 4px 0 10px; background: #92bcec; }"
     },
     {
       "name": "Starter Question",
@@ -575,9 +575,9 @@
       "name": "Edge Tab",
       "kind": "custom",
       "refersTo": "edge-tab",
-      "description": "The agent at rest on the right edge, with its status dot.",
-      "html": "<button class=\"ds-edge-tab\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M7.9 20A9 9 0 1 0 4 16.1L2 22Z\"/></svg><span class=\"ds-edge-tab__name\">Agent</span><span class=\"ds-edge-tab__dot\"></span></button>",
-      "css": ".ds-edge-tab { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 40px; padding: 14px 0 16px; margin-left: auto; border: 0; border-radius: 10px 0 0 10px; background: #4d90f0; color: #fff; box-shadow: -3px 4px 14px rgb(20 50 100 / 0.3); cursor: pointer; transition: width 220ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-edge-tab:hover { width: 46px; } .ds-edge-tab:active { background: #4382e4; box-shadow: inset 2px 0 4px rgb(0 30 90 / 0.3); } .ds-edge-tab:focus-visible { outline: 3px solid #1d5fd1; outline-offset: 2px; } .ds-edge-tab__name { writing-mode: vertical-rl; font: 800 12px 'Open Sans', system-ui, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; } .ds-edge-tab__dot { width: 12px; height: 12px; border: 2px solid #fff; border-radius: 50%; background: #1f8a4c; box-sizing: border-box; }"
+      "description": "The agent at rest on the right edge.",
+      "html": "<button class=\"ds-edge-tab\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M7.9 20A9 9 0 1 0 4 16.1L2 22Z\"/></svg><span class=\"ds-edge-tab__name\">Agent</span></button>",
+      "css": ".ds-edge-tab { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 40px; padding: 14px 0 16px; margin-left: auto; border: 0; border-radius: 10px 0 0 10px; background: #4d90f0; color: #fff; box-shadow: -3px 4px 14px rgb(20 50 100 / 0.3); cursor: pointer; transition: width 220ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-edge-tab:hover { width: 46px; } .ds-edge-tab:active { background: #4382e4; box-shadow: inset 2px 0 4px rgb(0 30 90 / 0.3); } .ds-edge-tab:focus-visible { outline: 3px solid #1d5fd1; outline-offset: 2px; } .ds-edge-tab__name { writing-mode: vertical-rl; font: 800 12px 'Open Sans', system-ui, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; }"
     },
     {
       "name": "Check-in Note",
@@ -590,7 +590,7 @@
   ],
   "narrative": {
     "northStar": "The Window at the Edge",
-    "overview": "The agent is one more window in ZANY's world. ZANY looks like VEXcode VR, so the agent does too. It uses Open Sans, VEX-blue title bars, gold bevelled buttons, small bold uppercase labels and floating windows with coloured title bars and a soft drop shadow. A student moves between the block editor, the playground and the agent and never sees the style change. Almost every colour value is ZANY's own, under ZANY's own name.\n\nThe code is the star, so the agent rests as a narrow VEX-blue tab on the right edge of the screen. Its name runs down the tab like a book's spine, with a dot that turns green once the agent can see the student's code. A check-in slides out of the tab as a small window with ZANY's gold title bar. Opened, the chat is a blue-titled window with a light-blue tool bar, a dotted workspace for the conversation and a white composer at the foot. It sits just left of the tab with the 3D tutor standing at its left edge.\n\nThe density is a classroom tool's. Controls are 44px tall, body text is 14.5px to 15px, and the type weights run heavy (600 to 800), because the readers are 12 years old on Chromebooks.",
+    "overview": "The agent is one more window in ZANY's world. ZANY looks like VEXcode VR, so the agent does too. It uses Open Sans, VEX-blue title bars, gold bevelled buttons, small bold uppercase labels and floating windows with coloured title bars and a soft drop shadow. A student moves between the block editor, the playground and the agent and never sees the style change. Almost every colour value is ZANY's own, under ZANY's own name.\n\nThe code is the star, so the agent rests as a narrow VEX-blue tab on the right edge of the screen. Its name runs down the tab like a book's spine A check-in slides out of the tab as a small window with ZANY's gold title bar. Opened, the chat is a blue-titled window with a light-blue tool bar, a dotted workspace for the conversation and a white composer at the foot. It sits just left of the tab with the 3D tutor standing at its left edge.\n\nThe density is a classroom tool's. Controls are 44px tall, body text is 14.5px to 15px, and the type weights run heavy (600 to 800), because the readers are 12 years old on Chromebooks.",
     "keyCharacteristics": [
       "The visual language is borrowed whole from ZANY and VEXcode VR, never invented beside it.",
       "Windows are white slabs with a coloured title bar, 6px corners and one soft two-layer drop shadow.",
@@ -610,11 +610,6 @@
         "section": "colors"
       },
       {
-        "name": "The Status Dot Rule",
-        "body": "Wherever the agent appears at rest, a dot says whether it can see the student's code, green when it can and grey when it cannot.",
-        "section": "colors"
-      },
-      {
         "name": "The Bold Label Rule",
         "body": "A label over a field or under an icon is small, 800 weight and uppercase, the way ZANY labels \"Student ID\". Running sentences are never uppercase.",
         "section": "typography"
@@ -630,7 +625,6 @@
       "Do give every window a coloured title bar, 6px corners and the window shadow (`0 14px 34px rgb(15 23 42 / 0.3), 0 3px 8px rgb(15 23 42 / 0.2)`).",
       "Do make the main action a gold bevelled button with 13px uppercase 800 text and a 44px height.",
       "Do label fields with the 10.5px uppercase 800 micro label.",
-      "Do show the status dot wherever the agent is visible at rest.",
       "Do keep primary buttons and fields 44px tall.",
       "Do turn off the slide, the window open and every looping animation under reduced motion."
     ],

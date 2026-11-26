@@ -70,8 +70,7 @@ describe("the agent page", () => {
     await user.type(await screen.findByLabelText("Student ID"), "S01");
     await user.click(screen.getByRole("button", { name: /Start chat/ }));
 
-    expect(await screen.findByText("Watching GO-Mars")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "What should I do first?" }));
+    await user.click(await screen.findByRole("button", { name: "What should I do first?" }));
     await screen.findByText("Drive forward first.");
     expect(calls.find((c) => c.path.endsWith("/turns")).body.message).toBe(
       "What should I do first?",
@@ -483,11 +482,10 @@ describe("the walkthrough and research mode", () => {
       render(<App />);
       const guide = await screen.findByRole("region", { name: "Getting started" });
       expect(guide).toHaveTextContent("log in with your class code and the same Student ID, S01");
-      expect(screen.getByText("Can't see your code yet")).toBeInTheDocument();
+      expect(screen.queryByText("Done.")).toBeNull();
       seen = true;
       await act(() => vi.advanceTimersByTimeAsync(10000));
-      expect(await screen.findByText("Watching GO-Mars")).toBeInTheDocument();
-      expect(screen.getAllByText("Done.")).toHaveLength(2);
+      expect(await screen.findAllByText("Done.")).toHaveLength(2);
     } finally {
       vi.useRealTimers();
     }

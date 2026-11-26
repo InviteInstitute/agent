@@ -344,24 +344,6 @@ export default function App() {
         <LifeBuoy size={16} strokeWidth={2.4} aria-hidden="true" />
         Help
       </button>
-      <p
-        className={session.sessionId ? "code-status code-status--seen" : "code-status"}
-        title={
-          session.sessionId
-            ? "The agent can see your code."
-            : "Run your program once so the agent can see your code."
-        }
-      >
-        <span className="code-status__dot" aria-hidden="true" />
-        <span className="code-status__text">
-          {session.sessionId
-            ? `Watching ${session.playground || "your code"}`
-            : "Can't see your code yet"}
-        </span>
-        <span className="code-status__short" aria-hidden="true">
-          {session.sessionId ? "Watching your code" : "Can't see code yet"}
-        </span>
-      </p>
       {avatar && tutorShown ? (
         <button
           type="button"
@@ -513,13 +495,7 @@ export default function App() {
         />
       ) : null}
 
-      <EdgeTab
-        open={open}
-        signedIn={signedIn}
-        seesCode={Boolean(session?.sessionId)}
-        unseen={unseen}
-        onToggle={open ? collapse : () => setOpen(true)}
-      />
+      <EdgeTab open={open} unseen={unseen} onToggle={open ? collapse : () => setOpen(true)} />
     </main>
   );
 }

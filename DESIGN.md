@@ -180,7 +180,7 @@ components:
 
 The agent is one more window in ZANY's world. ZANY looks like VEXcode VR, so the agent does too. It uses Open Sans, VEX-blue title bars, gold bevelled buttons, small bold uppercase labels and floating windows with coloured title bars and a soft drop shadow. A student moves between the block editor, the playground and the agent and never sees the style change. Almost every colour value is ZANY's own, under ZANY's own name.
 
-The code is the star, so the agent rests as a narrow VEX-blue tab on the right edge of the screen. Its name runs down the tab like a book's spine, with a dot that turns green once the agent can see the student's code. A check-in slides out of the tab as a small window with ZANY's gold title bar. Opened, the chat is a blue-titled window with a light-blue tool bar, a dotted workspace for the conversation and a white composer at the foot. It sits just left of the tab with the 3D tutor standing at its left edge.
+The code is the star, so the agent rests as a narrow VEX-blue tab on the right edge of the screen. Its name runs down the tab like a book's spine A check-in slides out of the tab as a small window with ZANY's gold title bar. Opened, the chat is a blue-titled window with a light-blue tool bar, a dotted workspace for the conversation and a white composer at the foot. It sits just left of the tab with the 3D tutor standing at its left edge.
 
 The density is a classroom tool's. Controls are 44px tall, body text is 14.5px to 15px, and the type weights run heavy (600 to 800), because the readers are 12 years old on Chromebooks.
 
@@ -218,15 +218,13 @@ The palette is ZANY's. VEX blue carries structure, gold carries action and the c
 
 ### State colours
 - Alert Red (#e8455a) marks the unread count on the tab, the recording state of the voice button and a failed-reply warning icon. Alert Ink (#8a1525) is error text.
-- Done Green (#1f8a4c) is the status dot when the agent can see the code, and a finished guide step. Unseen Grey (#8a96a3) is the same dot before it can, and resting rating thumbs.
+- Done Green (#1f8a4c) marks a finished guide step. Unseen Grey (#8a96a3) is the resting rating thumbs.
 
 Alert Ink, Done Green, Unseen Grey and Dot Grey are the agent's own additions. Every other value above is copied from ZANY's stylesheet under the same name.
 
 **The ZANY Source Rule.** A new colour comes from ZANY's stylesheet under ZANY's name. Add an agent-only value only for a state ZANY has no colour for, and name it for that state.
 
 **The Magenta Is Help Rule.** Reader Magenta appears on the Help button and nowhere else.
-
-**The Status Dot Rule.** Wherever the agent appears at rest, a dot says whether it can see the student's code, green when it can and grey when it cannot.
 
 ## Typography
 
@@ -251,8 +249,6 @@ The coding environment fills the whole screen in a frame, and everything the age
 The chat window opens beside the tab, about 400px wide, and can be dragged by its title bar and resized from any corner. Its column stacks a 54px title bar, a 52px tool bar, the scrolling log and the composer. The log pads 16px by 14px with a 12px gap between turns. Student turns sit right, agent turns sit left.
 
 Spacing runs on 4, 8, 12, 16 and 18px, with 10px and 14px for padding inside small boxes. Controls are 44px tall wherever a student taps them.
-
-The tool bar is a size container. Under 460px wide, the code status swaps its full sentence for a short one rather than cutting it off.
 
 Under 672px wide the chat becomes a sheet along the bottom, full width, up to 78% of the screen tall, with 10px top corners. The open tab hides there, and with the tutor shown the title bar leaves 80px on the left for the tutor's head. Under 720px tall, as on a Chromebook, the tab and note drop to 100px from the bottom to stay clear of the playground's camera buttons.
 
@@ -296,10 +292,10 @@ Every container is a window. A white body with 6px corners and the window shadow
 Inputs are white, 44px tall, with a 1.5px Soft Edge border and 6px corners. Focus turns the border Focus Blue and adds a 1px outline, so the edge reads as 2.5px. Each field has a micro label above it and optional 12px help text below.
 
 ### Navigation
-The title bar holds the agent's name, the student's ID pill (Deep VEX Blue, an uppercase caption over the bold ID), Sign out and Hide. The tool bar holds Help, the code status with its dot, and Mute and Tutor toggles. Dragging the title bar moves the window, and the cursor shows a grab hand.
+The title bar holds the agent's name, the student's ID pill (Deep VEX Blue, an uppercase caption over the bold ID), Sign out and Hide. The tool bar holds Help on the left and the Mute and Tutor toggles on the right. Dragging the title bar moves the window, and the cursor shows a grab hand.
 
 ### Edge Tab
-The agent's resting form. A 40px VEX Blue tab on the right edge carries a chevron or chat icon, the uppercase word "Agent" running down it, and the status dot. Hover widens it to 46px. An unread check-in adds an Alert Red count badge with a white ring on its top-left corner. Open, it turns Deep VEX Blue with an inset shadow.
+The agent's resting form. A 40px VEX Blue tab on the right edge carries a chevron or chat icon and the uppercase word "Agent" running down it. Hover widens it to 46px. An unread check-in adds an Alert Red count badge with a white ring on its top-left corner. Open, it turns Deep VEX Blue with an inset shadow.
 
 ### Check-in Note
 A check-in that arrives while the chat is tucked away. A small window with Window Gold's title bar and a mixed-case "Checking in" title slides out of the tab, clipping open from its right edge over 420ms. It holds the message in 15px text, a gold Reply button and a Later text button. This slide is the page's one authored motion. The chat window itself opens with a quick 260ms fade and scale from the tab's side, and reduced-motion settings turn off both.
@@ -314,7 +310,6 @@ Student turns are Focus Blue bubbles with white text on the right. Agent turns a
 - Give every window a coloured title bar, 6px corners and the window shadow (`0 14px 34px rgb(15 23 42 / 0.3), 0 3px 8px rgb(15 23 42 / 0.2)`).
 - Make the main action a gold bevelled button with 13px uppercase 800 text and a 44px height.
 - Label fields with the 10.5px uppercase 800 micro label.
-- Show the status dot wherever the agent is visible at rest.
 - Keep primary buttons and fields 44px tall.
 - Turn off the slide, the window open and every looping animation under reduced motion.
 

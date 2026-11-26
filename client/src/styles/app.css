@@ -242,6 +242,7 @@ svg.lucide {
 .help-button {
   display: inline-flex;
   flex: none;
+  margin-right: auto;
   align-items: center;
   gap: 6px;
   height: 36px;
@@ -538,7 +539,6 @@ svg.lucide {
 
 /* The bar under the title: light blue, like ZANY's Code bar. */
 .agent-panel__toolbar {
-  container: toolbar / inline-size;
   display: flex;
   flex-shrink: 0;
   align-items: center;
@@ -794,58 +794,6 @@ svg.lucide {
 
 .starter:disabled {
   opacity: 0.55;
-}
-
-/* Whether the agent can see the student's code, in the tool bar like ZANY's status. */
-.code-status {
-  display: flex;
-  flex: 1 1 0;
-  align-items: center;
-  gap: 7px;
-  min-width: 0;
-  margin: 0 4px;
-  color: var(--blue-text);
-  font-size: 13px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.code-status__text {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.code-status__short {
-  display: none;
-}
-
-/* A narrow bar says it shorter rather than cutting it off. */
-@container toolbar (max-width: 460px) {
-  .code-status__text {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-  }
-
-  .code-status__short {
-    display: inline;
-  }
-}
-
-.code-status__dot {
-  flex: none;
-  width: 11px;
-  height: 11px;
-  border: 2px solid var(--white);
-  border-radius: 50%;
-  background: #8a96a3;
-}
-
-.code-status--seen .code-status__dot {
-  background: var(--done);
 }
 
 .turn__research {
@@ -1233,18 +1181,6 @@ svg.lucide {
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-}
-
-.edge-tab__dot {
-  width: 12px;
-  height: 12px;
-  border: 2px solid var(--white);
-  border-radius: 50%;
-  background: #8a96a3;
-}
-
-.edge-tab__dot--seen {
-  background: var(--done);
 }
 
 .edge-tab__count {
