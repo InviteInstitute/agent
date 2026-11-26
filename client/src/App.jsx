@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Eye, EyeOff, LifeBuoy, LogOut, Minus, Volume2, VolumeX } from "lucide-react";
-import { api, readStored, writeStored } from "./api.js";
+import { api, readStored, setStudyTicket, studyMode, studyStudent, writeStored } from "./api.js";
 import Avatar, { avatarInstalled } from "./Avatar.jsx";
 import Chat from "./Chat.jsx";
 import { CheckinNote, EdgeTab } from "./Edge.jsx";
@@ -38,7 +38,14 @@ export const fromServer = (m) => ({
 export default function App() {
   const [site, setSite] = useState(null);
   const [siteError, setSiteError] = useState("");
-  const [student, setStudent] = useState(() => readStored(sessionStorage, STUDENT_KEY, null));
+  // At /study the student is whoever ATLAS's ticket names. Anywhere else, a reload keeps the
+  // student this tab signed in.
+  const [student, setStudent] = useState(() => {
+    if (!studyMode()) return readStored(sessionStorage, STUDENT_KEY, null);
+    const named = studyStudent();
+    setStudyTicket(named?.ticket ?? null);
+    return named;
+  });
   const [session, setSession] = useState(null);
   const [messages, setMessages] = useState([]);
   const [signingIn, setSigningIn] = useState(false);
@@ -110,7 +117,7 @@ export default function App() {
       setSignInError("");
       try {
         const data = await api.signIn(who, chat);
-        writeStored(sessionStorage, STUDENT_KEY, who);
+        if (!who.ticket) writeStored(sessionStorage, STUDENT_KEY, who);
         setStudent(who);
         setSession({ frame: data.frame, sessionId: data.session_id, playground: data.playground });
         setMessages(data.messages.map(fromServer));
@@ -324,7 +331,7 @@ export default function App() {
         </div>
       ) : null}
       <span className="agent-panel__spacer" />
-      {signedIn ? (
+      {signedIn && !student.ticket ? (
         <button type="button" className="bar-button" aria-label="Sign out" onClick={signOut}>
           <LogOut size={18} aria-hidden="true" />
           <span aria-hidden="true">Sign out</span>
@@ -403,8 +410,8 @@ export default function App() {
         <iframe
           className={`environment-frame ${moving ? "environment-frame--inert" : ""}`}
           src={frame}
-          title={environment?.name || site.environments[0].name}
-          allow="fullscreen"
+          title={environment?.name || (student?.ticket ? "ZANY" : site.environments[0].name)}
+          allow="fullscreen; clipboard-write"
         />
       ) : (
         <div className="environment-placeholder dotted">
@@ -433,7 +440,13 @@ export default function App() {
           onRect={setPanelRect}
         >
           {!signedIn ? (
-            student && !signInError ? (
+            studyMode() && !(student && !signInError) ? (
+              <div className="sign-in">
+                <Notice kind="error" title="Couldn't start">
+                  {signInError || "Open the agent from your study page."}
+                </Notice>
+              </div>
+            ) : student && !signInError ? (
               <div className="sign-in">
                 <Spinner label="Finding your session…" />
               </div>

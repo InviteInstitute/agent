@@ -12,8 +12,8 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Upl
 from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 
-from agent import checkins, config, db, environments, gate, llm, speech
-from agent.environments import Environment
+from agent import checkins, config, db, environments, gate, llm, speech, study
+from agent.environments import Environment, fold
 from agent.feedback import NO_EVENTS, Reply, answer_question
 from agent.pedagogy import PLACEHOLDERS, PROMPT_TEMPLATE
 from agent.situation import current_stretch
@@ -30,14 +30,34 @@ class Student:
     student_id: str
     class_code: str | None
     key: str
+    # An ATLAS study student's ticket, which named them (agent/study.py).
+    ticket: study.Ticket | None = None
 
 
-def student(environment: str, student_id: str, class_code: str | None = None) -> Student:
+def student(
+    environment: str, student_id: str, request: Request, class_code: str | None = None
+) -> Student:
     env = environments.get(environment)
     if env is None:
         raise HTTPException(404, f"This site does not serve {environment}.")
     student_id = student_id.strip()
     class_code = (class_code or "").strip() or None
+    if env.study:
+        # A study student is whoever ATLAS's ticket names, never what the link says.
+        ticket = study.read(study.ticket_from(request))
+        if (
+            ticket is None
+            or fold(ticket.participant) != fold(student_id)
+            or fold(ticket.code) != fold(class_code)
+        ):
+            raise HTTPException(403, "Open the agent from your study page.")
+        return Student(
+            env,
+            ticket.participant,
+            ticket.code,
+            env.student_key(ticket.participant, ticket.code),
+            ticket,
+        )
     if not student_id or len(student_id) > 100 or len(class_code or "") > 100:
         raise HTTPException(400, "Enter the student ID your teacher gave you.")
     if env.needs_class_code and not class_code:
@@ -126,6 +146,7 @@ def list_environments() -> dict:
                 "frame": env.frame(None, None),
             }
             for env in environments.enabled()
+            if not env.study
         ],
         "voice": speech.voice_on(),
     }
@@ -143,7 +164,9 @@ def sign_in(who: StudentDep, chat: Chat = "student") -> dict:
         "environment": who.environment.id,
         "student_id": who.student_id,
         "class_code": who.class_code,
-        "frame": who.environment.frame(who.student_id, who.class_code),
+        "frame": who.ticket.frame
+        if who.ticket
+        else who.environment.frame(who.student_id, who.class_code),
         "session_id": session_id,
         "playground": stretch[-1].playground if stretch else None,
         "messages": history(who, session_id, chat),
@@ -153,7 +176,7 @@ def sign_in(who: StudentDep, chat: Chat = "student") -> dict:
 @router.post("/{environment}/students/{student_id}/turns")
 def take_turn(who: StudentDep, body: TurnRequest, request: Request) -> dict:
     """A student's question (or Help) and the agent's reply to it."""
-    key = gate.budget_key(request.cookies.get(gate.COOKIE))
+    key = gate.request_budget_key(request)
     try:
         gate.check(key)
     except gate.OutOfTokens as error:
@@ -328,7 +351,7 @@ def research_config(request: Request) -> dict:
         "models_error": models_error,
         "prompt_template": PROMPT_TEMPLATE,
         "placeholders": PLACEHOLDERS,
-        "session_tokens": gate.usage(gate.budget_key(request.cookies.get(gate.COOKIE))),
+        "session_tokens": gate.usage(gate.request_budget_key(request)),
     }
 
 
@@ -343,7 +366,7 @@ def transcribe(who: StudentDep, request: Request, audio: Annotated[UploadFile, F
     if not speech.voice_on():
         raise HTTPException(404, "This site does not take spoken questions.")
     try:
-        gate.check(gate.budget_key(request.cookies.get(gate.COOKIE)))
+        gate.check(gate.request_budget_key(request))
     except gate.OutOfTokens as error:
         raise HTTPException(429, str(error)) from error
     recording = audio.file.read(MAX_RECORDING_BYTES + 1)

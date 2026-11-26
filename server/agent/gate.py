@@ -14,7 +14,7 @@ from itsdangerous import BadSignature, TimestampSigner
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
-from agent import config, db
+from agent import config, db, study
 
 log = logging.getLogger(__name__)
 
@@ -65,12 +65,15 @@ def cookie_valid(value: str | None) -> bool:
 
 class TurnstileGate(BaseHTTPMiddleware):
     """403 {"error": "turnstile_required"} on /v1 without a valid cookie. The client shows the
-    challenge when it sees that. The verify route and everything outside /v1 stay open."""
+    challenge when it sees that. The verify route and everything outside /v1 stay open, and so
+    does a request with a valid ATLAS study ticket, since ATLAS signed that student in."""
 
     async def dispatch(self, request, call_next):
         path = request.url.path
         if gate_on() and path.startswith("/v1/") and path != VERIFY_PATH:
-            if not cookie_valid(request.cookies.get(COOKIE)):
+            if not cookie_valid(request.cookies.get(COOKIE)) and not study.read(
+                study.ticket_from(request)
+            ):
                 return JSONResponse({"error": "turnstile_required"}, status_code=403)
         return await call_next(request)
 
@@ -85,6 +88,12 @@ class OutOfTokens(Exception):
 def budget_key(cookie: str | None) -> str:
     """A browser session's id for its budget: a hash, so the cookie is never stored."""
     return hashlib.sha256((cookie or "no-session").encode()).hexdigest()[:32]
+
+
+def request_budget_key(request) -> str:
+    """The budget a request spends from: its browser session's, or for a study student, their
+    ticket's, which lasts as long as a session does."""
+    return budget_key(request.cookies.get(COOKIE) or study.ticket_from(request))
 
 
 def session_limit() -> int:

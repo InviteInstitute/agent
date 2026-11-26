@@ -1,6 +1,7 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { setStudyTicket } from "./api.js";
 import App from "./App.jsx";
 import { renderInline } from "./Chat.jsx";
 import { resized } from "./Panel.jsx";
@@ -25,6 +26,7 @@ function serve(routes) {
       path: u.pathname,
       query: Object.fromEntries(u.searchParams),
       body,
+      headers: init.headers || {},
     });
     const key = `${init.method || "GET"} ${u.pathname}`;
     if (init.body instanceof FormData) calls.at(-1).form = init.body;
@@ -531,5 +533,57 @@ describe("the walkthrough and research mode", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe("inside an ATLAS study", () => {
+  const payload = {
+    study: "STUDY-0001",
+    code: "DEMO",
+    participant: "T01",
+    session: "STU-SESS-0001",
+    exp: 9e9,
+  };
+  const ticket = `${btoa(JSON.stringify(payload)).replace(/=+$/, "")}.abc123`;
+  const play = "https://zany.inviteai.org/play/?session=STU-SESS-0001";
+  afterEach(() => {
+    setStudyTicket(null);
+    sessionStorage.clear();
+  });
+
+  it("signs in the student ATLAS names and frames their study session", async () => {
+    window.history.replaceState(null, "", `/study#ticket=${ticket}`);
+    const calls = serve({
+      "GET /v1/environments": [200, { environments: [VEX, ZANY] }],
+      "GET /v1/zany-study/students/T01": [
+        200,
+        signedIn({
+          environment: "zany-study",
+          student_id: "T01",
+          class_code: "DEMO",
+          frame: play,
+          playground: "Castle Crasher+",
+        }),
+      ],
+      "PUT /v1/zany-study/students/T01/settings": [204, null],
+    });
+    render(<App />);
+
+    expect(await screen.findByTitle("ZANY")).toHaveAttribute("src", play);
+    const signIn = calls.find((c) => c.path === "/v1/zany-study/students/T01");
+    expect(signIn.query.class_code).toBe("DEMO");
+    expect(signIn.headers["X-Study-Ticket"]).toBe(ticket);
+    expect(calls.find((c) => c.path === "/v1/environments").headers["X-Study-Ticket"]).toBe(ticket);
+    expect(screen.queryByRole("button", { name: "Sign out" })).toBeNull();
+    expect(screen.queryByLabelText("Student ID")).toBeNull();
+    expect(sessionStorage.getItem("agent:student")).toBeNull();
+  });
+
+  it("says where to open it from when there is no ticket", async () => {
+    window.history.replaceState(null, "", "/study");
+    serve({ "GET /v1/environments": [200, { environments: [VEX, ZANY] }] });
+    render(<App />);
+    expect(await screen.findByText("Open the agent from your study page.")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Student ID")).toBeNull();
   });
 });

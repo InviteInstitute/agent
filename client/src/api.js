@@ -14,6 +14,37 @@ function describe(detail, status) {
   return `The agent answered with an error (${status}).`;
 }
 
+// A student in an ATLAS study comes with ATLAS's signed ticket, which every call carries.
+let ticket = null;
+export function setStudyTicket(value) {
+  ticket = value;
+}
+
+// The page at /study, which ATLAS frames for a student a researcher gave the agent.
+export function studyMode(path = window.location.pathname) {
+  return path.replace(/\/+$/, "") === "/study";
+}
+
+// The student ATLAS's ticket names, from /study#ticket=... The server checks the signature,
+// so this only reads who it says.
+export function studyStudent(hash = window.location.hash) {
+  const value = new URLSearchParams(hash.slice(1)).get("ticket");
+  if (!value) return null;
+  try {
+    const body = value.split(".")[0].replace(/-/g, "+").replace(/_/g, "/");
+    const data = JSON.parse(atob(body + "=".repeat((4 - (body.length % 4)) % 4)));
+    if (!data.participant || !data.code) return null;
+    return {
+      environment: "zany-study",
+      studentId: String(data.participant),
+      classCode: String(data.code),
+      ticket: value,
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function request(path, { method = "GET", body, query, form } = {}) {
   const url = new URL(`/v1${path}`, window.location.origin);
   for (const [key, value] of Object.entries(query || {})) {
@@ -21,7 +52,10 @@ async function request(path, { method = "GET", body, query, form } = {}) {
   }
   const response = await fetch(url, {
     method,
-    headers: body === undefined ? {} : { "Content-Type": "application/json" },
+    headers: {
+      ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+      ...(ticket ? { "X-Study-Ticket": ticket } : {}),
+    },
     body: form ?? (body === undefined ? undefined : JSON.stringify(body)),
     credentials: "same-origin",
   });
@@ -64,6 +98,7 @@ export const api = {
     if (typeof EventSource === "undefined") return null;
     const url = new URL(`/v1${studentPath(student)}/stream`, window.location.origin);
     if (student.classCode) url.searchParams.set("class_code", student.classCode);
+    if (ticket) url.searchParams.set("ticket", ticket);
     const source = new EventSource(url);
     source.addEventListener("checkin", (event) => {
       try {

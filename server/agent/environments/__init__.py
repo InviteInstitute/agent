@@ -66,6 +66,9 @@ class Environment:
     # Work the environment does in the background while the server runs, until the event is
     # set (ZANY listens for ATLAS's deletions).
     watch: Callable[[threading.Event], None] | None = None
+    # Its students come from an ATLAS study with a signed ticket (agent/study.py), never from
+    # the sign-in form.
+    study: bool = False
     _by_squashed: dict[str, Playground] = field(init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
@@ -92,7 +95,9 @@ class Environment:
 def all_environments() -> dict[str, Environment]:
     from agent.environments import vexcode_vr, zany
 
-    return {env.id: env for env in (vexcode_vr.ENVIRONMENT, zany.ENVIRONMENT)}
+    return {
+        env.id: env for env in (vexcode_vr.ENVIRONMENT, zany.ENVIRONMENT, zany.STUDY_ENVIRONMENT)
+    }
 
 
 def enabled() -> list[Environment]:
