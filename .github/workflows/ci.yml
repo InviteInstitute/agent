@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: agent_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      TEST_DATABASE_URL: postgresql://postgres:test@localhost:5432/agent_test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ./vendor/agent-lm-packages -e '.[dev]'
+      - run: ruff check agent tests
+      - run: ruff format --check agent tests
+      - run: pytest -q
+      - name: The image builds
+        run: docker build -q .

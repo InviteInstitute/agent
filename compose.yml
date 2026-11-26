@@ -1,0 +1,40 @@
+# The production stack: Postgres and the API. nginx on the host serves the client from
+# client/dist and passes /v1 to the API. `docker compose up` also reads compose.override.yml,
+# the dev setup, so production runs `docker compose -f compose.yml` (scripts/deploy.sh).
+name: agent
+
+services:
+  db:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: agent
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: agent
+    volumes:
+      # A named volume unless DB_DATA names a folder (production keeps it on /data).
+      - ${DB_DATA:-pgdata}:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agent -d agent"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  api:
+    build: ./server
+    restart: unless-stopped
+    env_file:
+      - path: .env
+      # The LLM key on the INVITE server, shared with the other apps that use Lumen.
+      - path: /etc/lumen.env
+        required: false
+    environment:
+      DATABASE_URL: postgresql://agent:${POSTGRES_PASSWORD}@db:5432/agent
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${API_PORT:-8005}:8000"
+
+volumes:
+  pgdata:

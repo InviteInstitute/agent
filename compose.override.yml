@@ -1,0 +1,15 @@
+# Local development only: `docker compose up` merges this over compose.yml. The API reloads
+# on every save, the Turnstile gate is off, and Postgres is reachable on 127.0.0.1:5435 so the
+# tests can use it (TEST_DATABASE_URL in the Makefile).
+services:
+  db:
+    ports:
+      - "127.0.0.1:5435:5432"
+
+  api:
+    command: sh -c "python -m agent migrate && exec uvicorn agent.app:app --host 0.0.0.0 --port 8000 --reload"
+    environment:
+      TURNSTILE: "off"
+    volumes:
+      - ./server/agent:/app/agent
+      - ./server/migrations:/app/migrations

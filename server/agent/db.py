@@ -1,0 +1,292 @@
+"""Postgres: one connection pool, the migrations, and every query the agent makes."""
+
+import logging
+import threading
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+from uuid import UUID
+
+from psycopg.rows import dict_row
+from psycopg.types.json import Jsonb
+from psycopg_pool import ConnectionPool
+
+from agent import config
+from agent.events import Event
+
+log = logging.getLogger(__name__)
+
+MIGRATIONS = Path(__file__).resolve().parents[1] / "migrations"
+
+_pool: ConnectionPool | None = None
+_pool_lock = threading.Lock()
+
+
+def pool() -> ConnectionPool:
+    global _pool
+    with _pool_lock:
+        if _pool is None:
+            _pool = ConnectionPool(config.database_url(), min_size=1, max_size=10, open=True)
+        return _pool
+
+
+def close() -> None:
+    global _pool
+    with _pool_lock:
+        if _pool is not None:
+            _pool.close()
+            _pool = None
+
+
+def migrate() -> list[str]:
+    """Apply the migrations not applied yet, in order, each in its own transaction.
+    Returns the names it applied."""
+    applied = []
+    with pool().connection() as conn:
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS schema_migrations"
+            " (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT now())"
+        )
+        done = {row[0] for row in conn.execute("SELECT name FROM schema_migrations")}
+        conn.commit()
+        for path in sorted(MIGRATIONS.glob("*.sql")):
+            if path.name in done:
+                continue
+            with conn.transaction():
+                conn.execute(path.read_text())
+                conn.execute("INSERT INTO schema_migrations (name) VALUES (%s)", (path.name,))
+            log.info("applied migration %s", path.name)
+            applied.append(path.name)
+    return applied
+
+
+# --- learner logs ---
+
+
+def insert_events(rows: list[dict[str, Any]]) -> int:
+    """Keep parsed records (events.parse_record's rows). A record already kept is skipped.
+    Returns how many were new."""
+    if not rows:
+        return 0
+    json_fields = ("project", "block_event", "playground_data")
+    with pool().connection() as conn, conn.cursor() as cur:
+        cur.executemany(
+            """
+            INSERT INTO events (environment, source_id, student_key, student_id, class_code,
+                session_id, event_ts, received_at, event_type, playground, project, block_event,
+                playground_data, error_message)
+            VALUES (%(environment)s, %(source_id)s, %(student_key)s, %(student_id)s,
+                %(class_code)s, %(session_id)s, %(event_ts)s, %(received_at)s, %(event_type)s,
+                %(playground)s, %(project)s, %(block_event)s, %(playground_data)s,
+                %(error_message)s)
+            ON CONFLICT (environment, source_id) DO NOTHING
+            """,
+            [
+                {**row, **{f: Jsonb(row[f]) if row[f] is not None else None for f in json_fields}}
+                for row in rows
+            ],
+        )
+        return cur.rowcount  # summed over the batch, skipped records count 0
+
+
+def session_events(environment: str, student_key: str, session_id: str) -> list[Event]:
+    """A session's events on a playground, oldest first."""
+    with pool().connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+        cur.execute(
+            """
+            SELECT id, session_id, event_ts, event_type, playground, project, block_event,
+                playground_data, error_message
+            FROM events
+            WHERE environment = %s AND student_key = %s AND session_id = %s
+              AND playground IS NOT NULL
+            ORDER BY event_ts, id
+            """,
+            (environment, student_key, session_id),
+        )
+        return [Event(**row) for row in cur.fetchall()]
+
+
+def latest_session(environment: str, student_key: str) -> str | None:
+    with pool().connection() as conn:
+        row = conn.execute(
+            "SELECT session_id FROM events WHERE environment = %s AND student_key = %s"
+            " ORDER BY event_ts DESC, id DESC LIMIT 1",
+            (environment, student_key),
+        ).fetchone()
+        return row[0] if row else None
+
+
+def cursor(source: str) -> dict | None:
+    with pool().connection() as conn:
+        row = conn.execute(
+            "SELECT position FROM ingest_cursors WHERE source = %s", (source,)
+        ).fetchone()
+        return row[0] if row else None
+
+
+def save_cursor(source: str, at: datetime, seq: int) -> None:
+    """Move a source's cursor forward to (at, seq). Never backward: two syncs can finish in
+    either order."""
+    with pool().connection() as conn:
+        conn.execute(
+            """
+            INSERT INTO ingest_cursors (source, position) VALUES (%(source)s, %(position)s)
+            ON CONFLICT (source) DO UPDATE SET position = EXCLUDED.position, updated_at = now()
+            WHERE ((ingest_cursors.position->>'at')::timestamptz,
+                   (ingest_cursors.position->>'seq')::bigint)
+                < ((EXCLUDED.position->>'at')::timestamptz, (EXCLUDED.position->>'seq')::bigint)
+            """,
+            {"source": source, "position": Jsonb({"at": at.isoformat(), "seq": seq})},
+        )
+
+
+# --- chat ---
+
+
+def insert_message(
+    *,
+    environment: str,
+    student_key: str,
+    session_id: str,
+    chat: str,
+    role: str,
+    body: str,
+    origin: str = "reactive",
+    response_id: UUID | None = None,
+    question_type: str | None = None,
+    feedback_classes: list[str] | None = None,
+    trigger_type: str | None = None,
+    context: dict | None = None,
+) -> int:
+    with pool().connection() as conn:
+        return conn.execute(
+            """
+            INSERT INTO messages (environment, student_key, session_id, chat, role, origin, body,
+                response_id, question_type, feedback_classes, trigger_type, context)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
+            """,
+            (
+                environment,
+                student_key,
+                session_id,
+                chat,
+                role,
+                origin,
+                body,
+                response_id,
+                question_type,
+                feedback_classes,
+                trigger_type,
+                Jsonb(context) if context is not None else None,
+            ),
+        ).fetchone()[0]
+
+
+def chat_messages(
+    environment: str, student_key: str, session_id: str, chat: str, limit: int
+) -> list[dict]:
+    """The newest `limit` turns of one chat in a session, oldest first. Check-ins belong to
+    both chats."""
+    with pool().connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+        cur.execute(
+            """
+            SELECT * FROM (
+                SELECT m.id, m.role, m.origin, m.body, m.response_id, m.trigger_type,
+                    m.created_at, r.thumb
+                FROM messages m
+                LEFT JOIN LATERAL (
+                    SELECT thumb FROM ratings WHERE message_id = m.id ORDER BY id DESC LIMIT 1
+                ) r ON true
+                WHERE m.environment = %s AND m.student_key = %s AND m.session_id = %s
+                  AND (m.chat = %s OR m.origin = 'proactive')
+                ORDER BY m.id DESC LIMIT %s
+            ) newest ORDER BY id
+            """,
+            (environment, student_key, session_id, chat, limit),
+        )
+        return cur.fetchall()
+
+
+def message_for_response(environment: str, student_key: str, response_id: UUID) -> int | None:
+    with pool().connection() as conn:
+        row = conn.execute(
+            "SELECT id FROM messages"
+            " WHERE environment = %s AND student_key = %s AND response_id = %s AND role = 'agent'",
+            (environment, student_key, response_id),
+        ).fetchone()
+        return row[0] if row else None
+
+
+def insert_rating(message_id: int, thumb: str, comment: str | None) -> None:
+    with pool().connection() as conn:
+        conn.execute(
+            "INSERT INTO ratings (message_id, thumb, comment) VALUES (%s, %s, %s)",
+            (message_id, thumb, comment),
+        )
+
+
+# --- research settings ---
+
+
+def agent_settings(environment: str, student_key: str) -> dict | None:
+    with pool().connection() as conn:
+        row = conn.execute(
+            "SELECT settings FROM agent_settings WHERE environment = %s AND student_key = %s",
+            (environment, student_key),
+        ).fetchone()
+        return row[0] if row else None
+
+
+def save_agent_settings(environment: str, student_key: str, settings: dict | None) -> None:
+    """Remember a student's research settings, or forget them (None means production)."""
+    with pool().connection() as conn:
+        if settings is None:
+            conn.execute(
+                "DELETE FROM agent_settings WHERE environment = %s AND student_key = %s",
+                (environment, student_key),
+            )
+            return
+        conn.execute(
+            """
+            INSERT INTO agent_settings (environment, student_key, settings) VALUES (%s, %s, %s)
+            ON CONFLICT (environment, student_key)
+            DO UPDATE SET settings = EXCLUDED.settings, updated_at = now()
+            """,
+            (environment, student_key, Jsonb(settings)),
+        )
+
+
+# --- LLM spending ---
+
+
+def record_llm_usage(
+    *,
+    budget_key: str,
+    environment: str | None,
+    student_key: str | None,
+    model: str,
+    origin: str,
+    tokens: int,
+) -> None:
+    with pool().connection() as conn:
+        conn.execute(
+            "INSERT INTO llm_usage (budget_key, environment, student_key, model, origin, tokens)"
+            " VALUES (%s, %s, %s, %s, %s, %s)",
+            (budget_key, environment, student_key, model, origin, tokens),
+        )
+
+
+def tokens_for_budget_key(budget_key: str) -> int:
+    with pool().connection() as conn:
+        return conn.execute(
+            "SELECT COALESCE(SUM(tokens), 0) FROM llm_usage WHERE budget_key = %s", (budget_key,)
+        ).fetchone()[0]
+
+
+def tokens_last_day() -> int:
+    with pool().connection() as conn:
+        return conn.execute(
+            "SELECT COALESCE(SUM(tokens), 0) FROM llm_usage"
+            " WHERE created_at > now() - INTERVAL '1 day'"
+        ).fetchone()[0]
