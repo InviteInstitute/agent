@@ -150,7 +150,8 @@ GO_MARS = Playground(
         "change [myVariable] by [number]",
         "comment",
     ),
-    aliases=("go_mars", "GOMars"),
+    log_name="GOMars",
+    aliases=("go_mars",),
     milestones=GO_MARS_MILESTONES,
     progress=go_mars_progress,
 )

@@ -37,6 +37,9 @@ class Playground:
     name: str
     task: str
     blocks: tuple[str, ...]
+    # The name the environment logs it under, which the learner-model engine keys its
+    # per-playground thresholds by. Logs may also use any of the aliases.
+    log_name: str = ""
     aliases: tuple[str, ...] = ()
     milestones: tuple[Milestone, ...] = ()
     # Progress toward the goal, 0 to 100, from a run's playgroundData parameters. None for a
@@ -66,7 +69,12 @@ class Environment:
     _by_squashed: dict[str, Playground] = field(init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
-        names = {squash(alias): p for p in self.playgrounds for alias in (p.name, *p.aliases)}
+        names = {
+            squash(alias): p
+            for p in self.playgrounds
+            for alias in (p.name, p.log_name, *p.aliases)
+            if alias
+        }
         object.__setattr__(self, "_by_squashed", names)
 
     def playground_name(self, raw: object) -> str | None:

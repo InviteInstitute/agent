@@ -113,6 +113,17 @@ export default function App() {
     api.saveSettings(student, JSON.parse(savedOverrides)).catch(() => {});
   }, [session, student, savedOverrides, custom, config]);
 
+  // Check-ins arrive while the student works. One already shown (after a reconnect) is skipped.
+  const live = Boolean(session);
+  useEffect(() => {
+    if (!live) return undefined;
+    const source = api.checkins(student, (c) => {
+      const message = fromServer({ ...c, role: "agent", origin: "proactive", thumb: null });
+      setMessages((list) => (list.some((m) => m.id === message.id) ? list : [...list, message]));
+    });
+    return () => source?.close();
+  }, [live, student]);
+
   const signOut = () => {
     writeStored(sessionStorage, STUDENT_KEY, null);
     setStudent(null);

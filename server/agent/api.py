@@ -1,12 +1,15 @@
 """The /v1 routes the client calls. A student is addressed by environment and student ID, plus
 the class code in environments that key students by class (ZANY)."""
 
+import asyncio
+import json
 import logging
 from dataclasses import dataclass
 from typing import Annotated, Literal
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 
 from agent import config, db, environments, gate, llm
@@ -241,6 +244,44 @@ def take_turn(who: StudentDep, body: TurnRequest, request: Request) -> dict:
         },
         "session_tokens": gate.usage(key),
     }
+
+
+STREAM_POLL_S = 2.0
+
+
+def checkin_event(row: dict) -> str:
+    payload = {
+        "id": row["id"],
+        "body": row["body"],
+        "response_id": str(row["response_id"]) if row["response_id"] else None,
+        "trigger_type": row["trigger_type"],
+        "created_at": row["created_at"].isoformat(),
+    }
+    return f"event: checkin\ndata: {json.dumps(payload)}\n\n"
+
+
+async def checkin_stream(who: Student, request: Request):
+    """The student's new check-ins, as server-sent events. It starts at the newest check-in,
+    so a new connection replays nothing (the page already loaded the chat), and it polls one
+    index-backed query every STREAM_POLL_S seconds. A comment line keeps proxies from closing
+    an idle stream."""
+    env_id = who.environment.id
+    last = await asyncio.to_thread(db.latest_proactive_id, env_id, who.key)
+    while not await request.is_disconnected():
+        for row in await asyncio.to_thread(db.proactive_after, env_id, who.key, last):
+            last = row["id"]
+            yield checkin_event(row)
+        yield ": keep-alive\n\n"
+        await asyncio.sleep(STREAM_POLL_S)
+
+
+@router.get("/{environment}/students/{student_id}/stream")
+def stream(who: StudentDep, request: Request) -> StreamingResponse:
+    return StreamingResponse(
+        checkin_stream(who, request),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @router.post("/{environment}/students/{student_id}/ratings", status_code=204)
