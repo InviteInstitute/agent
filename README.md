@@ -60,7 +60,7 @@ are in [docs/design.md](docs/design.md).
 
 | Path | What is there |
 | --- | --- |
-| `server/agent/environments/` | one module per environment: its frame, its log source, its playgrounds |
+| `server/agent/environments/` | one module per environment, with its frame, its log source and its playgrounds |
 | `server/agent/situation.py` | the measurements, and the facts in words for the prompt |
 | `server/agent/pedagogy.py` | feedback classes, question types and the prompt |
 | `server/agent/feedback.py` | the one pipeline that questions and check-ins share |

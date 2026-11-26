@@ -28,6 +28,12 @@ services:
       # The LLM key on the INVITE server, shared with the other apps that use Lumen.
       - path: /etc/lumen.env
         required: false
+      # ZANY_LOG_DSN, the read-only login to ATLAS-invite's log store on the host's Postgres.
+      - path: /etc/agent/zany.env
+        required: false
+    volumes:
+      # ZANY's logs are read over the host Postgres's socket.
+      - /var/run/postgresql:/var/run/postgresql:ro
     environment:
       DATABASE_URL: postgresql://agent:${POSTGRES_PASSWORD}@db:5432/agent
     depends_on:

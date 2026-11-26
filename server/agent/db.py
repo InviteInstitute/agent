@@ -140,6 +140,63 @@ def save_cursor(source: str, at: datetime, seq: int) -> None:
         )
 
 
+def students_held(environment: str) -> set[tuple[str | None, str]]:
+    """Every (class code, student ID) the agent has events for, as logged."""
+    with pool().connection() as conn:
+        rows = conn.execute(
+            "SELECT DISTINCT class_code, student_id FROM events WHERE environment = %s",
+            (environment,),
+        ).fetchall()
+        return {(class_code, student_id) for class_code, student_id in rows}
+
+
+# Tables keyed by (environment, student_key) that go when a student is forgotten.
+FORGOTTEN_WITH_STUDENT = ("messages", "agent_settings")
+
+
+def forget_students(environment: str, class_code: str | None, student_id: str | None) -> int:
+    """Delete the events logged under a class code, a student ID or both (exactly as logged),
+    then everything else the agent keeps about a student who has no events left: the chat, its
+    ratings and the research settings. Token spending stays counted, without the student.
+    Returns how many events were deleted."""
+    if class_code is None and student_id is None:
+        raise ValueError("name a class code or a student ID")
+    where, args = ["environment = %s"], [environment]
+    for column, value in (("class_code", class_code), ("student_id", student_id)):
+        if value is not None:
+            where.append(f"{column} = %s")
+            args.append(value)
+    condition = " AND ".join(where)
+    with pool().connection() as conn, conn.transaction():
+        keys = [
+            row[0]
+            for row in conn.execute(
+                f"SELECT DISTINCT student_key FROM events WHERE {condition}", args
+            )
+        ]
+        deleted = conn.execute(f"DELETE FROM events WHERE {condition}", args).rowcount
+        gone = [
+            key
+            for key in keys
+            if not conn.execute(
+                "SELECT 1 FROM events WHERE environment = %s AND student_key = %s LIMIT 1",
+                (environment, key),
+            ).fetchone()
+        ]
+        if gone:
+            for table in FORGOTTEN_WITH_STUDENT:
+                conn.execute(
+                    f"DELETE FROM {table} WHERE environment = %s AND student_key = ANY(%s)",
+                    (environment, gone),
+                )
+            conn.execute(
+                "UPDATE llm_usage SET student_key = NULL"
+                " WHERE environment = %s AND student_key = ANY(%s)",
+                (environment, gone),
+            )
+        return deleted
+
+
 # --- chat ---
 
 
