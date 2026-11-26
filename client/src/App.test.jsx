@@ -263,7 +263,7 @@ describe("check-ins", () => {
       "GET /v1/zany/students/S01": [200, signedIn({ environment: "zany", class_code: "room-4" })],
     });
     render(<App />);
-    await screen.findByText(/Ask me about your project/);
+    await screen.findByRole("region", { name: "Getting started" });
     expect(sources[0].url).toContain("/v1/zany/students/S01/stream?class_code=room-4");
 
     const checkin = { id: 7, body: "Still there?", response_id: "r7", trigger_type: "inactive" };
@@ -379,5 +379,76 @@ describe("the tutor's voice", () => {
     );
     expect(calls.find((c) => c.path.endsWith("/turns")).body.message).toBe("where is the lab");
     delete navigator.mediaDevices;
+  });
+});
+
+describe("the walkthrough and research mode", () => {
+  const student = { environment: "vexcode-vr", studentId: "S01", classCode: "" };
+
+  it("tells a VEXcode VR student to log in with the same ID, and ticks it off once it sees code", async () => {
+    sessionStorage.setItem("agent:student", JSON.stringify(student));
+    let seen = false;
+    serve({
+      "GET /v1/environments": [200, { environments: [VEX], voice: false }],
+      "GET /v1/vexcode-vr/students/S01": () => [
+        200,
+        signedIn(seen ? {} : { session_id: null, playground: null }),
+      ],
+    });
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      render(<App />);
+      const guide = await screen.findByRole("region", { name: "Getting started" });
+      expect(guide).toHaveTextContent("log in with your class code and the same Student ID, S01");
+      expect(guide).toHaveTextContent("I can't see your code yet.");
+      seen = true;
+      await act(() => vi.advanceTimersByTimeAsync(10000));
+      expect(await screen.findByText("I can see your code in GO-Mars!")).toBeInTheDocument();
+      expect(screen.getAllByText("Done.")).toHaveLength(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps the Research view from students, and shows it with ?research", async () => {
+    sessionStorage.setItem("agent:student", JSON.stringify(student));
+    const routes = {
+      "GET /v1/environments": [200, { environments: [VEX], voice: false }],
+      "GET /v1/vexcode-vr/students/S01": [200, signedIn()],
+    };
+    serve(routes);
+    const first = render(<App />);
+    await screen.findByRole("button", { name: "Help" });
+    expect(screen.queryByText("Research")).toBeNull();
+    first.unmount();
+
+    window.history.replaceState(null, "", "/?research");
+    serve(routes);
+    render(<App />);
+    expect(await screen.findByText("Research")).toBeInTheDocument();
+    expect(localStorage.getItem("agent:research")).toBe("true");
+  });
+
+  it("says the reply is still coming when it is slow", async () => {
+    sessionStorage.setItem("agent:student", JSON.stringify(student));
+    serve({
+      "GET /v1/environments": [200, { environments: [VEX], voice: false }],
+      "GET /v1/vexcode-vr/students/S01": [200, signedIn()],
+    });
+    const realFetch = global.fetch;
+    global.fetch = vi.fn((url, init) =>
+      String(url).includes("/turns") ? new Promise(() => {}) : realFetch(url, init),
+    );
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      render(<App />);
+      const help = await screen.findByRole("button", { name: "Help" });
+      act(() => help.click());
+      expect(await screen.findByText("Thinking…")).toBeInTheDocument();
+      await act(() => vi.advanceTimersByTimeAsync(6000));
+      expect(screen.getByText("Still thinking. This one is taking a moment…")).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

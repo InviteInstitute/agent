@@ -29,6 +29,19 @@ const STUDENT_KEY = "agent:student";
 const SETTINGS_KEY = "agent:settings";
 const MUTED_KEY = "agent:muted";
 const TUTOR_KEY = "agent:tutor";
+const RESEARCH_KEY = "agent:research";
+// While the agent cannot see a student's code yet, it checks again this often.
+const WAITING_POLL_MS = 10000;
+
+// Research mode shows the Research view, for the team only. A link turns it on with ?research
+// and off with ?research=0, and the browser remembers it.
+export function researchMode(search = window.location.search) {
+  const query = new URLSearchParams(search);
+  if (query.has("research")) {
+    writeStored(localStorage, RESEARCH_KEY, query.get("research") !== "0" || null);
+  }
+  return readStored(localStorage, RESEARCH_KEY, false) === true;
+}
 const DELAYED = "The agent ran into a delay. Try asking again in a moment.";
 
 // A message as the server keeps it, the way the chat shows it.
@@ -73,8 +86,10 @@ export default function App() {
   const [hush, setHush] = useState(0);
   const [voiceError, setVoiceError] = useState("");
 
-  const overrides = overridesFor(settings, config);
-  const custom = JSON.stringify(settings) !== JSON.stringify(PRODUCTION_SETTINGS);
+  const [research] = useState(() => researchMode());
+  // Research settings only ever apply in research mode, so a student never gets them.
+  const overrides = research ? overridesFor(settings, config) : null;
+  const custom = research && JSON.stringify(settings) !== JSON.stringify(PRODUCTION_SETTINGS);
   const chat = overrides ? "research" : "student";
 
   // The gate shows its challenge at page load rather than at the student's first question.
@@ -135,14 +150,31 @@ export default function App() {
   }, [site, student, session, signingIn, signInError, signIn]);
 
   // Check-ins come from the server on its own, so it keeps a copy of the research settings.
+  // Sent once per sign-in and per change, not after every message.
+  const live = Boolean(session);
   const savedOverrides = JSON.stringify(overrides);
   useEffect(() => {
-    if (!session || (custom && !config)) return;
+    if (!live || (custom && !config)) return;
     api.saveSettings(student, JSON.parse(savedOverrides)).catch(() => {});
-  }, [session, student, savedOverrides, custom, config]);
+  }, [live, student, savedOverrides, custom, config]);
+
+  // Until the agent can see the student's code, it looks again every few seconds, so the
+  // walkthrough ticks off "run your program" on its own.
+  const waiting = live && !session.sessionId;
+  useEffect(() => {
+    if (!waiting) return undefined;
+    const timer = setInterval(() => {
+      api.signIn(student, chat).then(
+        (data) =>
+          data.session_id &&
+          setSession((s) => ({ ...s, sessionId: data.session_id, playground: data.playground })),
+        () => {},
+      );
+    }, WAITING_POLL_MS);
+    return () => clearInterval(timer);
+  }, [waiting, student, chat]);
 
   // Check-ins arrive while the student works. One already shown (after a reconnect) is skipped.
-  const live = Boolean(session);
   useEffect(() => {
     if (!live) return undefined;
     const source = api.checkins(student, (c) => {
@@ -189,7 +221,13 @@ export default function App() {
             : m,
         ),
       );
-      if (data.session_id) setSession((s) => ({ ...s, sessionId: data.session_id }));
+      if (data.session_id) {
+        setSession((s) => ({
+          ...s,
+          sessionId: data.session_id,
+          playground: data.playground || s.playground,
+        }));
+      }
       if (data.session_tokens) setTokens(data.session_tokens);
     } catch (error) {
       const message = error.status === 429 || error.status === 502 ? error.message : DELAYED;
@@ -271,8 +309,17 @@ export default function App() {
     <>
       <h1 className="agent-panel__title">INVITE Agent</h1>
       {signedIn ? (
-        <Tag size="sm" type="cool-gray" title={`Session ${session.sessionId || "not started"}`}>
-          {environment?.needs_class_code ? `${student.classCode} / ` : ""}
+        <Tag
+          size="sm"
+          type="cool-gray"
+          title={[
+            `Student ID ${student.studentId}`,
+            environment?.needs_class_code ? `Class ${student.classCode}` : null,
+            `Session ${session.sessionId || "not started"}`,
+          ]
+            .filter(Boolean)
+            .join("\n")}
+        >
           {student.studentId}
         </Tag>
       ) : null}
@@ -323,17 +370,18 @@ export default function App() {
     </>
   );
 
-  const footer = signedIn ? (
-    <ContentSwitcher
-      size="sm"
-      selectedIndex={view === "chat" ? 0 : 1}
-      onChange={({ name }) => setView(name)}
-      aria-label="View"
-    >
-      <Switch name="chat" text="Chat" />
-      <Switch name="research" text="Research" />
-    </ContentSwitcher>
-  ) : null;
+  const footer =
+    signedIn && research ? (
+      <ContentSwitcher
+        size="sm"
+        selectedIndex={view === "chat" ? 0 : 1}
+        onChange={({ name }) => setView(name)}
+        aria-label="View"
+      >
+        <Switch name="chat" text="Chat" />
+        <Switch name="research" text="Research" />
+      </ContentSwitcher>
+    ) : null;
 
   return (
     <main className="agent-shell">
@@ -392,6 +440,12 @@ export default function App() {
           ) : (
             <Chat
               messages={messages}
+              guide={{
+                environment: student.environment,
+                studentId: student.studentId,
+                seesCode: Boolean(session.sessionId),
+                playground: session.playground,
+              }}
               onSend={ask}
               onRate={rate}
               busy={busy}

@@ -1,6 +1,92 @@
 import { useEffect, useRef, useState } from "react";
 import { Button, IconButton, InlineLoading, Tag, TextArea } from "@carbon/react";
-import { Send, ThumbsDown, ThumbsDownFilled, ThumbsUp, ThumbsUpFilled } from "@carbon/icons-react";
+import {
+  CheckmarkFilled,
+  ChatLaunch,
+  Send,
+  ThumbsDown,
+  ThumbsDownFilled,
+  ThumbsUp,
+  ThumbsUpFilled,
+  WarningFilled,
+} from "@carbon/icons-react";
+
+// A reply usually takes a second or two. Past this the student is told it is still coming.
+export const SLOW_REPLY_MS = 6000;
+
+// The first-run walkthrough: what a student does before the agent can help, per environment.
+// A step is done once the agent can see their code.
+export function guideSteps({ environment, studentId }) {
+  const ask = { key: "ask", text: "Ask me a question here, or press Help." };
+  if (environment === "vexcode-vr") {
+    return [
+      {
+        key: "login",
+        text: (
+          <>
+            In VEXcode VR, log in with your class code and the same Student ID,{" "}
+            <strong>{studentId}</strong>.
+          </>
+        ),
+        needsCode: true,
+      },
+      { key: "run", text: "Run your program once, so I can see your code.", needsCode: true },
+      ask,
+    ];
+  }
+  return [
+    {
+      key: "run",
+      text: "Build a program and run it once, so I can see your code.",
+      needsCode: true,
+    },
+    ask,
+  ];
+}
+
+function Guide({ guide }) {
+  return (
+    <section className="guide" aria-label="Getting started">
+      <h2 className="guide__title">Hi! I'm your coding helper.</h2>
+      <ol className="guide__steps">
+        {guideSteps(guide).map((step, index) => {
+          const done = step.needsCode && guide.seesCode;
+          return (
+            <li key={step.key} className={done ? "guide__step guide__step--done" : "guide__step"}>
+              <span className="guide__marker" aria-hidden="true">
+                {done ? <CheckmarkFilled size={16} /> : index + 1}
+              </span>
+              <span>
+                {step.text}
+                {done ? <span className="cds--visually-hidden"> Done.</span> : null}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+      <p className="guide__status" role="status">
+        {guide.seesCode
+          ? `I can see your code${guide.playground ? ` in ${guide.playground}` : ""}!`
+          : "I can't see your code yet."}
+      </p>
+    </section>
+  );
+}
+
+// "Thinking", then a word of reassurance if the reply is slow.
+function Thinking() {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setSlow(true), SLOW_REPLY_MS);
+    return () => clearTimeout(timer);
+  }, []);
+  return (
+    <InlineLoading
+      description={slow ? "Still thinking. This one is taking a moment…" : "Thinking…"}
+      className="turn__thinking"
+    />
+  );
+}
 
 // Replies name blocks in `backticks`, and models sometimes bold or italicize a word.
 export function renderInline(text) {
@@ -110,10 +196,9 @@ function Rating({ message, onRate }) {
 function Turn({ message, onRate }) {
   if (message.role === "student") {
     return (
-      <article className={`turn turn--student ${message.error ? "turn--failed" : ""}`}>
+      <article className="turn turn--student">
         <span className="cds--visually-hidden">You said: </span>
         <p className="turn__body">{message.body}</p>
-        {message.error ? <p className="turn__error">Not sent: {message.error}</p> : null}
       </article>
     );
   }
@@ -124,14 +209,22 @@ function Turn({ message, onRate }) {
       }`}
     >
       {message.origin === "proactive" ? (
-        <p className="turn__label">Checking in</p>
+        <p className="turn__label">
+          <ChatLaunch size={16} aria-hidden="true" />
+          Checking in
+        </p>
       ) : (
         <span className="cds--visually-hidden">INVITE Agent said: </span>
       )}
       {message.pending ? (
-        <InlineLoading description="Thinking…" className="turn__thinking" />
+        <Thinking />
       ) : (
-        <p className="turn__body">{renderInline(message.body)}</p>
+        <p className="turn__body">
+          {message.failed ? (
+            <WarningFilled size={16} className="turn__warning" aria-label="Problem:" />
+          ) : null}
+          {renderInline(message.body)}
+        </p>
       )}
       {message.model ? (
         <div className="turn__research">
@@ -160,6 +253,7 @@ export default function Chat({
   customNote,
   notice,
   composerExtra,
+  guide,
 }) {
   const [draft, setDraft] = useState("");
   const end = useRef(null);
@@ -179,7 +273,9 @@ export default function Chat({
   return (
     <>
       <div className="chat" aria-label="Conversation" role="log">
-        {messages.length ? null : (
+        {messages.length ? null : guide ? (
+          <Guide guide={guide} />
+        ) : (
           <p className="chat__empty">
             Ask me about your project, or press Help and I'll look at your code.
           </p>
