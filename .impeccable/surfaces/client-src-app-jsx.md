@@ -13,9 +13,9 @@ Mode: operate. A middle-school student codes in ZANY or VEXcode VR, framed full 
 
 THESIS: The agent lives in the edge of the screen, not on top of the code. It refuses the default always-open chat window floating over the playground.
 
-OWN-WORLD: ZANY's tokens and parts. A VEX-blue tab on the right edge with a status dot, a gold-titled "Checking in" note like ZANY's playground window, and a blue-titled chat window with the light-blue tool bar. Open Sans, gold bevelled buttons, the dotted workspace inside the chat.
+OWN-WORLD: ZANY's tokens and parts. A VEX-blue tab on the right edge, a gold-titled "Checking in" note like ZANY's playground window, and a blue-titled chat window with the light-blue tool bar. Open Sans, gold bevelled buttons, the dotted workspace inside the chat.
 
-STORY: The student sees their code with a small blue tab at the edge. Green dot means the agent sees their code. When the agent checks in, a gold note slides out of the tab with the tutor beside it, and they reply or press Later. Tapping the tab opens the chat beside it.
+STORY: The student sees their code with a small blue tab at the edge. When the agent checks in, a gold note slides out of the tab with the tutor beside it, and they reply or press Later. Tapping the tab opens the chat beside it.
 
 FIRST VIEWPORT: The coding environment fills the screen. The tab sits on the right edge near the bottom, 44px wide. Opened, the chat window sits just left of the tab at the bottom right, about 400px wide, with the tutor standing at its left edge.
 

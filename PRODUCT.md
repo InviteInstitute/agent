@@ -63,7 +63,8 @@ sees the style change between the coding space and the agent.
 ## Product Principles
 
 1. The code is the star. The agent helps and then gets out of the way.
-2. Always say whether the agent can see the student's code.
+2. Keep the chat quiet. The first-run steps say when the agent can see the code, and nothing
+   else on screen repeats it.
 3. Speak to a 12-year-old. Short sentences, plain words, one idea at a time.
 4. A student should never be stuck on the agent itself, so every state says what to do next.
 

@@ -2,9 +2,9 @@ import { useCallback } from "react";
 import { ChevronRight, MessageCircle, MessageCircleMore, X } from "lucide-react";
 import { renderInline } from "./Chat.jsx";
 
-// The agent at rest: a blue tab on the right edge of the screen. Its dot says whether the agent
-// can see the student's code, and a badge counts replies they have not read.
-export function EdgeTab({ open, seesCode, signedIn, unseen, onToggle }) {
+// The agent at rest: a blue tab on the right edge of the screen, with a badge that counts
+// replies the student has not read.
+export function EdgeTab({ open, unseen, onToggle }) {
   const label = open ? "Tuck the INVITE Agent away" : "Open the INVITE Agent";
   return (
     <button
@@ -23,12 +23,6 @@ export function EdgeTab({ open, seesCode, signedIn, unseen, onToggle }) {
       <span className="edge-tab__name" aria-hidden="true">
         Agent
       </span>
-      {signedIn ? (
-        <span
-          className={seesCode ? "edge-tab__dot edge-tab__dot--seen" : "edge-tab__dot"}
-          aria-hidden="true"
-        />
-      ) : null}
       {unseen && !open ? (
         <span className="edge-tab__count" aria-hidden="true">
           {unseen}
