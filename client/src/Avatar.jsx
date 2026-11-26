@@ -48,6 +48,7 @@ export function placeAvatar(panel, viewport) {
 }
 
 export default function Avatar({ panel, visible, utterance, muted, hush }) {
+  // visible: signed in, the chat open and the student wants the tutor. Hidden, Unity pauses.
   const frame = useRef(null);
   const said = useRef(new Set());
   const framingSent = useRef(null);
@@ -79,19 +80,28 @@ export default function Avatar({ panel, visible, utterance, muted, hush }) {
     }
   });
 
+  const shown = Boolean(visible && ready && placement);
+  useEffect(() => {
+    if (ready) post({ type: shown ? "resume" : "pause" });
+  }, [ready, shown]);
+
   // Muting, or the student starting to speak, stops the voice at once.
   useEffect(() => {
     if (ready && (muted || hush)) post({ type: "hush" });
   }, [ready, muted, hush]);
 
-  // Each reply is said once, however often the page renders.
+  // Each reply is said once, however often the page renders. One that arrives while the tutor
+  // is hidden is not said later.
   useEffect(() => {
     if (!ready || !utterance || said.current.has(utterance.id)) return;
+    if (!shown) {
+      said.current.add(utterance.id);
+      return;
+    }
     said.current.add(utterance.id);
     post({ type: "speak", text: utterance.text, parts: utterance.parts, audio: !muted });
-  }, [ready, utterance, muted]);
+  }, [ready, utterance, muted, shown]);
 
-  const shown = visible && ready && placement;
   return (
     <div
       className={`avatar ${shown ? "avatar--shown" : ""}`}

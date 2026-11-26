@@ -56,7 +56,7 @@ describe("the agent page", () => {
   it("signs in, frames the environment and answers a question", async () => {
     const calls = serve({
       "GET /v1/ping": [200, { ok: true }],
-      "GET /v1/environments": [200, { environments: [VEX], avatar: false }],
+      "GET /v1/environments": [200, { environments: [VEX] }],
       "GET /v1/vexcode-vr/students/S01": [200, signedIn()],
       "PUT /v1/vexcode-vr/students/S01/settings": [204, null],
       "POST /v1/vexcode-vr/students/S01/turns": [
@@ -96,7 +96,7 @@ describe("the agent page", () => {
 
   it("asks ZANY students for their class and frames ZANY only once they sign in", async () => {
     const calls = serve({
-      "GET /v1/environments": [200, { environments: [VEX, ZANY], avatar: false }],
+      "GET /v1/environments": [200, { environments: [VEX, ZANY] }],
       "GET /v1/zany/students/S01": [
         200,
         signedIn({
@@ -126,7 +126,7 @@ describe("the agent page", () => {
       JSON.stringify({ environment: "vexcode-vr", studentId: "S01", classCode: "" }),
     );
     serve({
-      "GET /v1/environments": [200, { environments: [VEX], avatar: false }],
+      "GET /v1/environments": [200, { environments: [VEX] }],
       "GET /v1/vexcode-vr/students/S01": [
         200,
         signedIn({
@@ -162,7 +162,7 @@ describe("the agent page", () => {
       JSON.stringify({ environment: "vexcode-vr", studentId: "S01", classCode: "" }),
     );
     serve({
-      "GET /v1/environments": [200, { environments: [VEX], avatar: false }],
+      "GET /v1/environments": [200, { environments: [VEX] }],
       "GET /v1/vexcode-vr/students/S01": [200, signedIn()],
       "POST /v1/vexcode-vr/students/S01/turns": [
         429,
@@ -259,7 +259,7 @@ describe("check-ins", () => {
       JSON.stringify({ environment: "zany", studentId: "S01", classCode: "room-4" }),
     );
     serve({
-      "GET /v1/environments": [200, { environments: [VEX, ZANY], avatar: false }],
+      "GET /v1/environments": [200, { environments: [VEX, ZANY] }],
       "GET /v1/zany/students/S01": [200, signedIn({ environment: "zany", class_code: "room-4" })],
     });
     render(<App />);
@@ -284,7 +284,7 @@ describe("the tutor's voice", () => {
   it("asks the server to start the speech, unless the tutor is muted", async () => {
     sessionStorage.setItem("agent:student", JSON.stringify(student));
     const calls = serve({
-      "GET /v1/environments": [200, { environments: [VEX], avatar: true, voice: false }],
+      "GET /v1/environments": [200, { environments: [VEX], voice: false }],
       "GET /avatar/build/build.json": [200, { version: "v1" }],
       "GET /v1/vexcode-vr/students/S01": [200, signedIn()],
       "POST /v1/vexcode-vr/students/S01/turns": [200, reply],
@@ -306,10 +306,29 @@ describe("the tutor's voice", () => {
     expect(localStorage.getItem("agent:muted")).toBe("true");
   });
 
-  it("shows no tutor when the site has one but no build is installed", async () => {
+  it("hides the tutor on request, stops asking for speech, and remembers it", async () => {
+    sessionStorage.setItem("agent:student", JSON.stringify(student));
+    const calls = serve({
+      "GET /v1/environments": [200, { environments: [VEX], voice: false }],
+      "GET /avatar/build/build.json": [200, { version: "v1" }],
+      "GET /v1/vexcode-vr/students/S01": [200, signedIn()],
+      "POST /v1/vexcode-vr/students/S01/turns": [200, reply],
+    });
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(await screen.findByRole("button", { name: "Hide the tutor" }));
+    expect(screen.queryByRole("button", { name: "Mute the tutor" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Help" }));
+    await screen.findByText("Try it. Then run.");
+    expect(calls.find((c) => c.path.endsWith("/turns")).body.speak).toBe(false);
+    expect(localStorage.getItem("agent:tutor")).toBe("false");
+    expect(screen.getByRole("button", { name: "Show the tutor" })).toBeInTheDocument();
+  });
+
+  it("shows no tutor when no build is installed", async () => {
     sessionStorage.setItem("agent:student", JSON.stringify(student));
     serve({
-      "GET /v1/environments": [200, { environments: [VEX], avatar: true, voice: false }],
+      "GET /v1/environments": [200, { environments: [VEX], voice: false }],
       "GET /v1/vexcode-vr/students/S01": [200, signedIn()],
     });
     render(<App />);
@@ -344,7 +363,7 @@ describe("the tutor's voice", () => {
       value: { getUserMedia: async () => ({ getTracks: () => [{ stop() {} }] }) },
     });
     const calls = serve({
-      "GET /v1/environments": [200, { environments: [VEX], avatar: false, voice: true }],
+      "GET /v1/environments": [200, { environments: [VEX], voice: true }],
       "GET /v1/vexcode-vr/students/S01": [200, signedIn()],
       "POST /v1/vexcode-vr/students/S01/transcriptions": [200, { text: "where is the lab" }],
       "POST /v1/vexcode-vr/students/S01/turns": [200, reply],

@@ -30,4 +30,7 @@
 @use "@carbon/styles/scss/components/text-input";
 @use "@carbon/styles/scss/components/tooltip";
 
-@include invite-theme.themes;
+// Always light: the panel floats over the coding environments, which are light.
+:root {
+  @include invite-theme.light;
+}
