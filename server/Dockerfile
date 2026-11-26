@@ -12,7 +12,8 @@ RUN pip install --no-cache-dir -e /app
 # The tutor's voice (8.5 MB), baked in so it works without a download at start.
 RUN python -m agent fetch-voice
 
-RUN useradd --system --uid 10001 agent
+# A home folder, so libraries that keep a small state file there (onnxruntime) have one.
+RUN useradd --system --create-home --uid 10001 agent
 USER agent
 EXPOSE 8000
 # Migrations run before the server starts, so a deploy is one step. nginx on the host is the
