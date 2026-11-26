@@ -9,7 +9,7 @@ written fresh, and adds ZANY as a second environment.
 
 - Grounded replies to a question or the Help button.
 - Proactive check-ins when a behavior trigger fires (wheel-spinning, resilience, explorer,
-  iterative, inactive).
+  iterative, inactive), sent only while the student has the page open.
 - The study's question types and their scaffolding, the feedback-class flowchart and the prompt.
 - The research page. A researcher picks a model, edits the prompt and the sampling, and those
   replies stay in a research chat apart from what students see.
