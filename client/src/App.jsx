@@ -345,7 +345,21 @@ export default function App() {
         <LifeBuoy size={16} strokeWidth={2.4} aria-hidden="true" />
         Help
       </button>
-      <span className="agent-panel__spacer" />
+      <p
+        className={session.sessionId ? "code-status code-status--seen" : "code-status"}
+        title={
+          session.sessionId
+            ? "The agent can see your code."
+            : "Run your program once so the agent can see your code."
+        }
+      >
+        <span className="code-status__dot" aria-hidden="true" />
+        <span className="code-status__text">
+          {session.sessionId
+            ? `Watching ${session.playground || "your code"}`
+            : "Can't see your code yet"}
+        </span>
+      </p>
       {avatar && tutorShown ? (
         <button
           type="button"
@@ -407,7 +421,7 @@ export default function App() {
           allow="fullscreen"
         />
       ) : (
-        <div className="environment-placeholder">
+        <div className="environment-placeholder dotted">
           <p>Your coding space opens here once you sign in.</p>
         </div>
       )}
@@ -461,7 +475,6 @@ export default function App() {
                 environment: student.environment,
                 studentId: student.studentId,
                 seesCode: Boolean(session.sessionId),
-                playground: session.playground,
               }}
               onSend={ask}
               onRate={rate}

@@ -53,6 +53,36 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("the agent page", () => {
+  it("starts with a tapped question, says what it sees, and offers a note after a thumb", async () => {
+    const calls = serve({
+      "GET /v1/ping": [200, { ok: true }],
+      "GET /v1/environments": [200, { environments: [VEX] }],
+      "GET /v1/vexcode-vr/students/S01": [200, signedIn()],
+      "PUT /v1/vexcode-vr/students/S01/settings": [204, null],
+      "POST /v1/vexcode-vr/students/S01/turns": [
+        200,
+        { session_id: "abc", reply: { response_id: "r1", body: "Drive forward first." } },
+      ],
+      "POST /v1/vexcode-vr/students/S01/ratings": [204, null],
+    });
+    const user = userEvent.setup();
+    render(<App />);
+    await user.type(await screen.findByLabelText("Student ID"), "S01");
+    await user.click(screen.getByRole("button", { name: /Start chat/ }));
+
+    expect(await screen.findByText("Watching GO-Mars")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "What should I do first?" }));
+    await screen.findByText("Drive forward first.");
+    expect(calls.find((c) => c.path.endsWith("/turns")).body.message).toBe(
+      "What should I do first?",
+    );
+    expect(screen.queryByRole("button", { name: "What should I do first?" })).toBeNull();
+
+    expect(screen.queryByRole("button", { name: "Add a note" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "This didn't help" }));
+    expect(await screen.findByRole("button", { name: "Add a note" })).toBeInTheDocument();
+  });
+
   it("signs in, frames the environment and answers a question", async () => {
     const calls = serve({
       "GET /v1/ping": [200, { ok: true }],
@@ -400,10 +430,10 @@ describe("the walkthrough and research mode", () => {
       render(<App />);
       const guide = await screen.findByRole("region", { name: "Getting started" });
       expect(guide).toHaveTextContent("log in with your class code and the same Student ID, S01");
-      expect(guide).toHaveTextContent("I can't see your code yet.");
+      expect(screen.getByText("Can't see your code yet")).toBeInTheDocument();
       seen = true;
       await act(() => vi.advanceTimersByTimeAsync(10000));
-      expect(await screen.findByText("I can see your code in GO-Mars!")).toBeInTheDocument();
+      expect(await screen.findByText("Watching GO-Mars")).toBeInTheDocument();
       expect(screen.getAllByText("Done.")).toHaveLength(2);
     } finally {
       vi.useRealTimers();

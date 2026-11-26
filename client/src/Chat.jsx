@@ -7,7 +7,6 @@ import {
   ThumbsUp,
   TriangleAlert,
 } from "lucide-react";
-import { Spinner } from "./ui.jsx";
 
 // A reply usually takes a second or two. Past this the student is told it is still coming.
 export const SLOW_REPLY_MS = 6000;
@@ -62,15 +61,35 @@ function Guide({ guide }) {
           );
         })}
       </ol>
-      <p
-        className={guide.seesCode ? "guide__status guide__status--seen" : "guide__status"}
-        role="status"
-      >
-        {guide.seesCode
-          ? `I can see your code${guide.playground ? ` in ${guide.playground}` : ""}!`
-          : "I can't see your code yet."}
-      </p>
     </section>
+  );
+}
+
+// Questions a student can tap instead of facing an empty box.
+export const STARTERS = [
+  "What should I do first?",
+  "Why isn't my robot moving?",
+  "What does my code do?",
+];
+
+function Starters({ onPick, disabled }) {
+  return (
+    <div className="starters" role="group" aria-labelledby="starters-label">
+      <span className="micro starters__label" id="starters-label">
+        Try asking
+      </span>
+      {STARTERS.map((text) => (
+        <button
+          key={text}
+          type="button"
+          className="starter"
+          onClick={() => onPick(text)}
+          disabled={disabled}
+        >
+          {text}
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -82,10 +101,16 @@ function Thinking() {
     return () => clearTimeout(timer);
   }, []);
   return (
-    <Spinner
-      className="thinking"
-      label={slow ? "Still thinking. This one is taking a moment…" : "Thinking…"}
-    />
+    <span className="thinking" role="status">
+      <span className="thinking__dots" aria-hidden="true">
+        <span />
+        <span />
+        <span />
+      </span>
+      <span className={slow ? "thinking__label" : "visually-hidden"}>
+        {slow ? "Still thinking. This one is taking a moment…" : "Thinking…"}
+      </span>
+    </span>
   );
 }
 
@@ -148,14 +173,16 @@ function Rating({ message, onRate }) {
       <div className="rating__row">
         {thumb("up", "This helped", ThumbsUp)}
         {thumb("down", "This didn't help", ThumbsDown)}
-        <button
-          type="button"
-          className="text-button"
-          onClick={() => setNoteOpen((open) => !open)}
-          aria-expanded={noteOpen}
-        >
-          {noteOpen ? "Hide note" : "Add a note"}
-        </button>
+        {message.thumb ? (
+          <button
+            type="button"
+            className="text-button"
+            onClick={() => setNoteOpen((open) => !open)}
+            aria-expanded={noteOpen}
+          >
+            {noteOpen ? "Hide note" : "Add a note"}
+          </button>
+        ) : null}
         {state && state !== "sending" ? (
           <span className="rating__state" role="status">
             {state}
@@ -179,12 +206,11 @@ function Rating({ message, onRate }) {
           <button
             type="button"
             className="gold-button"
-            disabled={!note.trim() || !message.thumb || state === "sending"}
+            disabled={!note.trim() || state === "sending"}
             onClick={() => send(message.thumb, note.trim())}
           >
             Send note
           </button>
-          {!message.thumb ? <p className="rating__hint">Pick thumbs up or down first.</p> : null}
         </div>
       ) : null}
     </div>
@@ -269,7 +295,10 @@ export default function Chat({
     <>
       <div className="chat dotted" aria-label="Conversation" role="log">
         {messages.length ? null : guide ? (
-          <Guide guide={guide} />
+          <>
+            <Guide guide={guide} />
+            <Starters onPick={onSend} disabled={busy} />
+          </>
         ) : (
           <p className="chat__empty">
             Ask me about your project, or press Help and I'll look at your code.
