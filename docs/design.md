@@ -37,7 +37,9 @@ written fresh, and adds ZANY as a second environment.
   the gate and the open `/generate-feedback-*` routes are not carried over.
 - Identity switch tracking is gone, since nothing ever read `switch_events`. Students are
   matched on a key with case and spaces folded, which covers the casing changes it recorded.
-- The client uses Carbon, like lm-dashboard and ATLAS.
+- The client looks like ZANY, which looks like VEXcode VR: Open Sans, VEX-blue bars, gold
+  buttons and the dotted workspace, with ZANY's colour names and values. A student moves between
+  the agent and the coding space without the page changing style.
 
 ## How a student is addressed
 
@@ -60,7 +62,7 @@ All six are done, and the agent serves agent.inviteai.org, where vex-pedagogical
 
 1. The server core, the schema, the pipeline and VEXcode VR, with tests and CI.
 2. ZANY. It needs a read-only role on ATLAS's log store.
-3. The Carbon client, with the frame and the chat on top.
+3. The client, with the frame and the chat on top.
 4. Proactive check-ins and the live stream.
 5. The avatar, speech and spoken questions.
 6. Deploying it: the stack, nginx, the webhook and a domain, through infra.

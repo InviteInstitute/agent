@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { InlineLoading, InlineNotification } from "@carbon/react";
+import { Notice, Spinner } from "./ui.jsx";
 
 // The Cloudflare Turnstile challenge, full screen, shown when the API asks for it (api.js sends
 // "turnstile:required"). Solving it sets the cookie, and the page reloads with it.
@@ -57,18 +57,19 @@ export default function TurnstileGate() {
 
   if (!open) return null;
   return (
-    <div className="turnstile-gate" role="dialog" aria-label="Checking you're not a bot">
-      <InlineLoading description="Checking you're not a bot…" />
-      <div ref={box} />
-      {failed ? (
-        <InlineNotification
-          kind="error"
-          title="That didn't work"
-          subtitle="Reload the page to try again."
-          lowContrast
-          hideCloseButton
-        />
-      ) : null}
+    <div className="turnstile-gate dotted" role="dialog" aria-label="Checking you're not a bot">
+      <section className="gate-window">
+        <h1>One quick check</h1>
+        <div className="gate-window__body">
+          <Spinner label="Checking you're not a bot…" />
+          <div ref={box} />
+          {failed ? (
+            <Notice kind="error" title="That didn't work">
+              Reload the page to try again.
+            </Notice>
+          ) : null}
+        </div>
+      </section>
     </div>
   );
 }
