@@ -8,6 +8,7 @@ A deployment serves the environments ENVIRONMENTS names (config.environments).
 
 from __future__ import annotations
 
+import threading
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
@@ -59,6 +60,9 @@ class Environment:
     # Read new learner logs into the events table: everyone's, moving the source's cursor,
     # or one student's (student_id, class_code) without moving it. Returns how many were new.
     sync: Callable[..., int]
+    # Work the environment does in the background while the server runs, until the event is
+    # set (ZANY listens for ATLAS's deletions).
+    watch: Callable[[threading.Event], None] | None = None
     _by_squashed: dict[str, Playground] = field(init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
@@ -78,9 +82,9 @@ class Environment:
 
 
 def all_environments() -> dict[str, Environment]:
-    from agent.environments import vexcode_vr
+    from agent.environments import vexcode_vr, zany
 
-    return {env.id: env for env in (vexcode_vr.ENVIRONMENT,)}
+    return {env.id: env for env in (vexcode_vr.ENVIRONMENT, zany.ENVIRONMENT)}
 
 
 def enabled() -> list[Environment]:

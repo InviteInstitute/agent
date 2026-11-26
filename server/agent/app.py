@@ -1,6 +1,7 @@
 """The FastAPI app: the /v1 routes behind the Turnstile gate, health and the gate's own route."""
 
 import logging
+import threading
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request, Response
@@ -14,9 +15,21 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    environments.enabled()  # a misspelled ENVIRONMENTS fails the start, not the first request
+    # A misspelled ENVIRONMENTS fails the start, not the first request.
+    served = environments.enabled()
     llm.client()
+    stop = threading.Event()
+    workers = [
+        threading.Thread(target=env.watch, args=(stop,), name=f"{env.id}-watch", daemon=True)
+        for env in served
+        if env.watch
+    ]
+    for worker in workers:
+        worker.start()
     yield
+    stop.set()
+    for worker in workers:
+        worker.join(timeout=5)
     db.close()
 
 
