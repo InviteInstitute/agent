@@ -236,6 +236,7 @@ def take_turn(who: StudentDep, body: TurnRequest, request: Request) -> dict:
     return {
         "session_id": session_id,
         "student_message_id": student_message_id,
+        "playground": reply.context.get("playground"),
         "reply": {
             "response_id": str(response_id),
             "body": reply.body,

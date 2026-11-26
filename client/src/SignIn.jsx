@@ -41,7 +41,9 @@ export default function SignIn({ environments, onSignIn, pending, error }) {
 
   return (
     <Form className="sign-in" onSubmit={submit} aria-label="Sign in">
-      <p className="sign-in__lead">Enter what your teacher gave you to start chatting.</p>
+      <p className="sign-in__lead">
+        Hi! I'm your coding helper. Sign in with what your teacher gave you.
+      </p>
       {environments.length > 1 ? (
         <RadioButtonGroup
           legendText="Where are you coding?"

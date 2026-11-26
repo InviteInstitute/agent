@@ -6,6 +6,7 @@ from __future__ import annotations
 import logging
 import re
 import threading
+import time
 from dataclasses import asdict, dataclass
 
 import openai
@@ -22,6 +23,11 @@ REPLY_MAX_TOKENS = 240
 # Room a model that cannot stop reasoning gets to think before it answers.
 REASONING_BUDGET_TOKENS = 4096
 CLASSIFIER_MAX_TOKENS = 8
+# The classifier answers in about 0.2 s. Past this it has stalled at the gateway, and the reply
+# goes ahead with the general question type rather than keep the student waiting.
+CLASSIFIER_TIMEOUT_S = 6.0
+# A call slower than this is logged, so a stall at the gateway shows in the logs.
+SLOW_CALL_S = 3.0
 
 # The chat models researchers can pick from. Lumen also serves aliases and non-chat models.
 RESEARCH_MODELS = frozenset(
@@ -108,7 +114,12 @@ def strip_thinking(text: str) -> str:
 
 
 def _ask(
-    model: str, prompt: str, max_tokens: int | None, temperature: float | None, reasoning: bool
+    model: str,
+    prompt: str,
+    max_tokens: int | None,
+    temperature: float | None,
+    reasoning: bool,
+    timeout: float | None = None,
 ) -> tuple[str, str, int]:
     """One completion: (answer, finish_reason, tokens spent). Without `reasoning`, Qwen's
     thinking is turned off. With it, the model gets a low effort and extra room to reason."""
@@ -123,9 +134,15 @@ def _ask(
         kwargs["max_tokens"] = budget
     if temperature is not None:
         kwargs["temperature"] = temperature
-    response = client().chat.completions.create(
+    # A call with its own time limit gets one try, since a retry would outlast the limit.
+    api = client().with_options(timeout=timeout, max_retries=0) if timeout else client()
+    started = time.monotonic()
+    response = api.chat.completions.create(
         model=model, messages=[{"role": "user", "content": prompt}], **kwargs
     )
+    took = time.monotonic() - started
+    if took > SLOW_CALL_S:
+        log.warning("%s took %.1f s to answer", model, took)
     choice = response.choices[0]
     content = choice.message.content or ""
     usage = getattr(response, "usage", None)
@@ -139,6 +156,7 @@ def complete(
     *,
     max_tokens: int | None = None,
     temperature: float | None = None,
+    timeout: float | None = None,
     spent: list[int],
 ) -> str:
     """An answer from `model`, with the tokens each call spent appended to `spent`.
@@ -146,11 +164,11 @@ def complete(
     A short reply never needs its whole budget, so an empty answer or a cut-off one means the
     model spent it reasoning. It is asked again with room to reason, and remembered."""
     reasoning = model in _reasoning_models
-    answer, finish, tokens = _ask(model, prompt, max_tokens, temperature, reasoning)
+    answer, finish, tokens = _ask(model, prompt, max_tokens, temperature, reasoning, timeout)
     spent.append(tokens)
     if (not answer or finish == "length") and not reasoning:
         log.info("%s gave no usable answer (%s), asking again with room to reason", model, finish)
-        answer, finish, tokens = _ask(model, prompt, max_tokens, temperature, True)
+        answer, finish, tokens = _ask(model, prompt, max_tokens, temperature, True, timeout)
         spent.append(tokens)
         if answer:
             _reasoning_models.add(model)

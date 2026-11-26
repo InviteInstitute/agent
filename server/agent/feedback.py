@@ -100,6 +100,7 @@ def classify(student_message: str, model: str, tool: str, spent: list[int]):
             model,
             classifier_prompt(student_message, tool),
             max_tokens=llm.CLASSIFIER_MAX_TOKENS,
+            timeout=llm.CLASSIFIER_TIMEOUT_S,
             spent=spent,
         )
     except Exception:

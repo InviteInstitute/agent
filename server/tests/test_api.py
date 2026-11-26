@@ -159,3 +159,20 @@ def test_the_gate_wants_a_solved_challenge(client, monkeypatch):
     monkeypatch.setenv("SESSION_SECRET", "s")
     assert client.get("/v1/ping").json() == {"error": "turnstile_required"}
     assert client.get("/healthz").status_code == 200
+
+
+def test_a_stalled_classifier_does_not_hold_up_the_reply(client, fake_llm, monkeypatch):
+    load("01_error_flagging_a.ndjson")
+    fake = fake_llm("A reply anyway.")
+    real = fake._create
+
+    def create(**kwargs):
+        if kwargs["max_tokens"] == 8:  # the classifier's call
+            raise TimeoutError("the gateway stalled")
+        return real(**kwargs)
+
+    fake.chat.completions.create = create
+    reply = client.post(f"{STUDENT}/turns", json={"message": "hey"}).json()["reply"]
+    assert reply["body"] == "A reply anyway."
+    assert reply["question_type"] == "General / Unclear Help-Seeking"
+    assert {"timeout": 6.0, "max_retries": 0} in fake.options

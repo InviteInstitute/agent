@@ -88,10 +88,15 @@ class FakeLLM:
         self.finish = finish
         self.prompts: list[str] = []
         self.calls: list[dict] = []
+        self.options: list[dict] = []
         self.chat = SimpleNamespace(completions=SimpleNamespace(create=self._create))
         self.models = SimpleNamespace(
             list=lambda: SimpleNamespace(data=[SimpleNamespace(id="gemma-4-31b-it")])
         )
+
+    def with_options(self, **options):
+        self.options.append(options)
+        return self
 
     def _create(self, *, model, messages, **kwargs):
         self.prompts.append(messages[0]["content"])
