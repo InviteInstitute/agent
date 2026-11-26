@@ -131,7 +131,8 @@ def test_a_ticket_passes_the_turnstile_gate(log_store, monkeypatch):
 
 def test_a_deletion_in_atlas_forgets_the_study_student_and_their_chat(log_store):
     keep(log_store, *a_study_run(), *a_castle_run(10, klass="DEMO", student="T02"))
-    zany.sync_study()
+    zany.sync_study("T01", "DEMO")  # both open the agent
+    zany.sync_study("T02", "DEMO")
     session = db.latest_session("zany-study", KEY)
     db.insert_message(
         environment="zany-study",
@@ -163,7 +164,8 @@ def test_a_deletion_in_atlas_forgets_the_study_student_and_their_chat(log_store)
 
 def test_the_hourly_check_forgets_a_study_student_whose_records_are_gone(log_store):
     keep(log_store, *a_study_run(), *a_castle_run(10, klass="DEMO", student="T02"))
-    zany.sync_study()
+    zany.sync_study("T01", "DEMO")  # both open the agent
+    zany.sync_study("T02", "DEMO")
     log_store.execute("DELETE FROM log_record WHERE record->>'studentID' = 'T02'")
     assert zany.reconcile_store(zany.STUDY) == 4
     assert db.students_held("zany-study") == {("DEMO", "T01")}
@@ -174,3 +176,12 @@ def test_study_records_parse_under_the_study_environment():
         [(record(1, klass="DEMO", student="T01"), "1")], zany.STUDY_ENVIRONMENT
     )
     assert row[0][0]["environment"] == "zany-study" and row[0][0]["student_key"] == KEY
+
+
+def test_the_background_read_copies_only_students_who_opened_the_agent(log_store):
+    keep(log_store, *a_study_run(), *a_castle_run(10, klass="DEMO", student="T02"))
+    assert zany.sync_study() == 0  # nobody has opened the agent yet
+    zany.sync_study("T01", "DEMO")  # T01 signs in
+    keep(log_store, *a_study_run(20), *a_castle_run(30, klass="DEMO", student="T02"))
+    assert zany.sync_study() == 4
+    assert db.students_held("zany-study") == {("DEMO", "T01")}

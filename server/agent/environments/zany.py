@@ -237,6 +237,17 @@ def read_store(store: Store, student_id: str | None = None, class_code: str | No
     if student_id is not None:
         conditions.append(f"{store.class_code} = %s AND {store.student_id} = %s")
         args += [class_code or "", student_id]
+    elif store is STUDY:
+        # Only the study students who opened the agent, whose logs it read when they did. The
+        # rest of the study never gave the agent their logs, so it never copies them.
+        held = sorted(db.students_held(STUDY.environment))
+        if not held:
+            return 0
+        conditions.append(
+            f"({store.class_code}, {store.student_id})"
+            " IN (SELECT * FROM unnest(%s::text[], %s::text[]))"
+        )
+        args += [[code or "" for code, _ in held], [student for _, student in held]]
 
     environment = _environment(store)
     new = 0
