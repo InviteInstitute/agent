@@ -444,7 +444,7 @@
       {
         "name": "window",
         "value": "0 14px 34px rgb(15 23 42 / 0.3), 0 3px 8px rgb(15 23 42 / 0.2)",
-        "purpose": "Lifts the chat window, the check-in note and the gate window. ZANY's window shadow."
+        "purpose": "Lifts the chat window and the check-in note. ZANY's window shadow."
       },
       {
         "name": "bevel",

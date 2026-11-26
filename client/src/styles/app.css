@@ -1136,7 +1136,7 @@ svg.lucide {
   }
 }
 
-/* ---- collapsed, and the bot check ---- */
+/* ---- collapsed ---- */
 
 /* The agent at rest: a VEX-blue tab on the right edge, its name running down it like a book's
    spine. Open, it turns deep blue and points the way to tuck the chat back in. */
@@ -1286,39 +1286,16 @@ svg.lucide {
   min-height: 40px;
 }
 
-.gate-window {
-  width: min(360px, calc(100vw - 32px));
-  overflow: hidden;
-  border-radius: 6px;
-  background: var(--white);
-  box-shadow:
-    0 14px 34px rgb(15 23 42 / 0.3),
-    0 3px 8px rgb(15 23 42 / 0.2);
-}
-
-.gate-window h1 {
-  margin: 0;
-  padding: 14px 16px;
-  background: var(--vex-blue);
-  color: var(--white);
-  font-size: 15px;
-  font-weight: 800;
-}
-
-.gate-window__body {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  padding: 18px 16px 20px;
-}
-
+/* Cloudflare's bot check, left as Cloudflare draws it on a plain page. */
 .turnstile-gate {
   position: fixed;
   inset: 0;
   z-index: 100;
   display: grid;
-  place-items: center;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  background: var(--white);
 }
 
 /* ---- the 3D tutor ---- */

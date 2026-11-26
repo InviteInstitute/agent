@@ -196,7 +196,7 @@ The density is a classroom tool's. Controls are 44px tall, body text is 14.5px t
 The palette is ZANY's. VEX blue carries structure, gold carries action and the check-in, and the reader magenta is kept for Help.
 
 ### Primary
-- VEX Blue (#4d90f0) fills the chat's title bar, the edge tab, the gate window's title, block-name chips, guide step markers and the typing dots. It is the colour of the agent's frame.
+- VEX Blue (#4d90f0) fills the chat's title bar, the edge tab, block-name chips, guide step markers and the typing dots. It is the colour of the agent's frame.
 - Deep VEX Blue (#4382e4) is the pressed and open state. It fills the ID pill, a pressed square button and the edge tab while the chat is open.
 - Soft VEX Blue (#92bcec) fills the tool bar under the title, the way ZANY's Code bar sits under its top bar.
 
@@ -208,7 +208,7 @@ The palette is ZANY's. VEX blue carries structure, gold carries action and the c
 - Reader Magenta (#af127f) is the Help button and nothing else. In ZANY it marks the reader, so here it marks the one button a stuck student should find.
 
 ### Neutral
-- Workspace Grey (#f9f9f9) under a faint dot grid in Dot Grey (#d9dee5) is the background of the chat log, the sign-in screen, the bot check and the placeholder before the coding environment loads.
+- Workspace Grey (#f9f9f9) under a faint dot grid in Dot Grey (#d9dee5) is the background of the chat log, the sign-in screen and the placeholder before the coding environment loads.
 - White (#ffffff) is every window body, input, composer and footer.
 - Ink (#1f2933) is body text, and Muted Slate (#5d6b7a) is help text, field labels and quiet states.
 - Line (#dde3ea) divides the composer and footer from the log and edges agent bubbles. Soft Edge (#b8cad7) outlines inputs, starter questions and notices.
@@ -234,7 +234,7 @@ The character comes from weight. Titles and labels sit at 800, names and states 
 
 ### Hierarchy
 - The title role (700, 19px) is the mixed-case title of the check-in note, like the title of ZANY's playground window.
-- The headline role (800, 16px, 0.01em tracking) is "INVITE Agent" in the title bar. The gate window and the first-run guide use the same weight at 15px and 17px.
+- The headline role (800, 16px, 0.01em tracking) is "INVITE Agent" in the title bar. The first-run guide uses the same weight at 17px.
 - The body role (400, 14.5px, line height 1.5) is every chat bubble and guide step. Bubbles cap at 86% of the log width.
 - The large body role (400 to 600, 15px) is inputs, the sign-in lead and the check-in note's message.
 - The label role (800, 13px, 0.06em tracking, uppercase) is the text on gold and magenta buttons.
@@ -257,7 +257,7 @@ Under 672px wide the chat becomes a sheet along the bottom, full width, up to 78
 Depth is ZANY's. Windows lift off the coding environment with one soft two-layer shadow, and buttons carry a bevel inside their own edge. Nothing else casts a shadow.
 
 ### Shadow Vocabulary
-- The window shadow (`box-shadow: 0 14px 34px rgb(15 23 42 / 0.3), 0 3px 8px rgb(15 23 42 / 0.2)`) lifts the chat window, the check-in note and the gate window. It is ZANY's `.win` shadow.
+- The window shadow (`box-shadow: 0 14px 34px rgb(15 23 42 / 0.3), 0 3px 8px rgb(15 23 42 / 0.2)`) lifts the chat window, and the check-in note. It is ZANY's `.win` shadow.
 - The bevel (`box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.28), inset 0 -3px 0 rgb(0 0 0 / 0.18)`) sits on gold and magenta buttons. A chosen picker half and a block-name chip carry the bottom edge alone.
 - The press (`box-shadow: inset 0 2px 3px rgb(0 0 0 / 0.25)`) replaces the bevel while a button is held, with a 1px drop.
 - The tile lift (`box-shadow: 0 1px 2px rgb(20 50 100 / 0.18)`) sits under white square buttons in the tool bar.
@@ -286,7 +286,7 @@ A block named in a reply is drawn as a VEX block, a VEX Blue chip with white bol
 Starter questions are white pills with a Soft Edge border and Blue Text. Hover turns the border VEX Blue and fills them with Blue Wash.
 
 ### Cards / Containers
-Every container is a window. A white body with 6px corners and the window shadow sits under a coloured title bar, VEX Blue for the chat and the bot check, Window Gold for a check-in. Notices are 8px boxes with a 1px border, Blue Wash for information, Cream for a warning and pale red for an error, each with an icon on the left.
+Every container is a window. A white body with 6px corners and the window shadow sits under a coloured title bar, VEX Blue for the chat, Window Gold for a check-in. Cloudflare's bot check is left as Cloudflare draws it, alone on a plain white page. Notices are 8px boxes with a 1px border, Blue Wash for information, Cream for a warning and pale red for an error, each with an icon on the left.
 
 ### Inputs / Fields
 Inputs are white, 44px tall, with a 1.5px Soft Edge border and 6px corners. Focus turns the border Focus Blue and adds a 1px outline, so the edge reads as 2.5px. Each field has a micro label above it and optional 12px help text below.
