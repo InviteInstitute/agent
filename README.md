@@ -74,8 +74,8 @@ here as `ubuntu`. It pulls, rolls Postgres and the API with `docker compose -f c
 `avatar/`, and passes `/v1` to the API on 127.0.0.1:8005.
 
 The checkout's `.env` holds the site's settings and secrets. The Lumen key comes from
-`/etc/lumen.env` and ZANY's read-only login from `/etc/agent/zany.env`. `AGENT_STUDY_SECRET` in
-`.env` checks ATLAS's study tickets, and ATLAS holds the same secret as `agent_study_secret`. The Unity build of the
+`/etc/lumen.env`. ZANY's read-only login and `AGENT_STUDY_SECRET`, which checks ATLAS's study
+tickets, come from `/etc/agent/zany.env`. ATLAS holds the same secret as `agent_study_secret`. The Unity build of the
 tutor is installed by hand with `avatar/install.sh` and is kept across deploys.
 
 ## Layout
