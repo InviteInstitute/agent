@@ -1,0 +1,33 @@
+// The IBM Carbon styles the agent uses, in INVITE's theme (shared with lm-dashboard and
+// ATLAS-invite). Only the components the page renders. Carbon loads no fonts, since index.html
+// loads IBM Plex.
+
+@use "@carbon/styles/scss/config" with (
+  $css--font-face: false,
+  $prefix: "cds"
+);
+@use "@carbon/styles/scss/reset";
+@use "@carbon/styles/scss/type";
+@use "@carbon/styles/scss/layout";
+@use "@carbon/styles/scss/layer";
+@use "invite-theme";
+@use "@carbon/styles/scss/components/accordion";
+@use "@carbon/styles/scss/components/button";
+@use "@carbon/styles/scss/components/checkbox";
+@use "@carbon/styles/scss/components/content-switcher";
+@use "@carbon/styles/scss/components/form";
+@use "@carbon/styles/scss/components/inline-loading";
+@use "@carbon/styles/scss/components/loading";
+@use "@carbon/styles/scss/components/notification";
+@use "@carbon/styles/scss/components/number-input";
+@use "@carbon/styles/scss/components/popover";
+@use "@carbon/styles/scss/components/progress-bar";
+@use "@carbon/styles/scss/components/radio-button";
+@use "@carbon/styles/scss/components/select";
+@use "@carbon/styles/scss/components/skeleton-styles";
+@use "@carbon/styles/scss/components/tag";
+@use "@carbon/styles/scss/components/text-area";
+@use "@carbon/styles/scss/components/text-input";
+@use "@carbon/styles/scss/components/tooltip";
+
+@include invite-theme.themes;

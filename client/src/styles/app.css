@@ -1,0 +1,458 @@
+/* The agent page: the coding environment fills the window, the chat floats over it. Colours and
+   type are Carbon's tokens in INVITE's theme (carbon.scss), so the panel reads like lm-dashboard
+   and ATLAS's researcher pages. */
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family:
+    "IBM Plex Sans",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Helvetica,
+    Arial,
+    sans-serif;
+  background: var(--cds-background);
+  color: var(--cds-text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+code,
+pre {
+  font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+
+.agent-shell {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+
+.agent-shell--message {
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+}
+
+.environment-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* While the panel is dragged or resized the frame must not take the pointer. */
+.environment-frame--inert {
+  pointer-events: none;
+}
+
+.environment-placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background-color: var(--cds-background);
+  background-image:
+    linear-gradient(var(--cds-border-subtle-01) 1px, transparent 1px),
+    linear-gradient(90deg, var(--cds-border-subtle-01) 1px, transparent 1px);
+  background-size: 2rem 2rem;
+}
+
+.environment-placeholder p {
+  margin: 0;
+  padding: 0.5rem 1rem;
+  background: var(--cds-background);
+  color: var(--cds-text-secondary);
+  font-size: 0.875rem;
+}
+
+/* ---- the panel ---- */
+
+.agent-panel {
+  position: fixed;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 1.5rem);
+  background: var(--cds-layer-01);
+  border: 1px solid var(--cds-border-subtle-01);
+  box-shadow:
+    0 2px 6px rgb(0 0 0 / 12%),
+    0 12px 32px rgb(0 0 0 / 16%);
+}
+
+.agent-panel__header {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 3rem;
+  padding: 0 0.25rem 0 1rem;
+  border-bottom: 1px solid var(--cds-border-subtle-01);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.agent-panel__header:active {
+  cursor: grabbing;
+}
+
+.agent-panel__title {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.125rem;
+  letter-spacing: 0.16px;
+  white-space: nowrap;
+}
+
+.agent-panel__header .cds--tag {
+  max-width: 10rem;
+}
+
+.agent-panel__spacer {
+  flex: 1;
+}
+
+.agent-panel__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.agent-panel__body > .cds--loading-overlay,
+.agent-panel__body > .cds--loading {
+  margin: 2rem auto;
+}
+
+.agent-panel__footer {
+  flex-shrink: 0;
+  padding: 0.5rem 1rem;
+  border-top: 1px solid var(--cds-border-subtle-01);
+}
+
+.agent-panel__corner {
+  position: absolute;
+  width: 1rem;
+  height: 1rem;
+  touch-action: none;
+}
+.agent-panel__corner--nw {
+  top: -0.375rem;
+  left: -0.375rem;
+  cursor: nwse-resize;
+}
+.agent-panel__corner--ne {
+  top: -0.375rem;
+  right: -0.375rem;
+  cursor: nesw-resize;
+}
+.agent-panel__corner--sw {
+  bottom: -0.375rem;
+  left: -0.375rem;
+  cursor: nesw-resize;
+}
+.agent-panel__corner--se {
+  right: -0.375rem;
+  bottom: -0.375rem;
+  cursor: nwse-resize;
+}
+
+/* ---- signing in ---- */
+
+.sign-in {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1rem 1rem 1.5rem;
+}
+
+.sign-in__lead {
+  margin: 0;
+  color: var(--cds-text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.sign-in .cds--btn {
+  max-width: none;
+  width: 100%;
+}
+
+/* ---- the chat ---- */
+
+.chat {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.chat__empty {
+  margin: 0;
+  color: var(--cds-text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.turn {
+  max-width: 88%;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  line-height: 1.375rem;
+  letter-spacing: 0.16px;
+}
+
+.turn__body {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.turn--student {
+  align-self: flex-end;
+  background: var(--cds-highlight);
+}
+
+.turn--agent {
+  align-self: flex-start;
+  background: var(--cds-layer-02);
+  border-left: 3px solid transparent;
+}
+
+.turn--checkin {
+  border-left-color: var(--cds-interactive);
+}
+
+.turn--failed {
+  border-left-color: var(--cds-support-error);
+}
+
+.turn__label {
+  margin: 0 0 0.25rem;
+  color: var(--cds-interactive);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.32px;
+}
+
+.turn__error {
+  margin: 0.25rem 0 0;
+  color: var(--cds-text-error);
+  font-size: 0.75rem;
+}
+
+.turn__thinking {
+  min-height: 1.375rem;
+}
+
+.block-name {
+  padding: 0 0.25rem;
+  background: var(--cds-layer-accent-01);
+  font-size: 0.8125rem;
+}
+
+.turn__research {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  color: var(--cds-text-secondary);
+  font-size: 0.75rem;
+}
+
+.turn__research details {
+  flex-basis: 100%;
+}
+
+.turn__research summary {
+  cursor: pointer;
+  color: var(--cds-link-primary);
+}
+
+.turn__research pre {
+  max-height: 16rem;
+  margin: 0.5rem 0 0;
+  padding: 0.5rem;
+  overflow: auto;
+  background: var(--cds-layer-01);
+  font-size: 0.75rem;
+  white-space: pre-wrap;
+}
+
+.rating {
+  margin: 0.25rem -0.5rem -0.375rem;
+}
+
+.rating__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.125rem;
+}
+
+.rating__state,
+.rating__hint {
+  margin: 0 0 0 0.5rem;
+  color: var(--cds-text-secondary);
+  font-size: 0.75rem;
+}
+
+.rating__note {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem 0.5rem;
+}
+
+.rating__note .cds--form-item {
+  width: 100%;
+}
+
+.composer {
+  flex-shrink: 0;
+  padding: 0.75rem 1rem 1rem;
+  border-top: 1px solid var(--cds-border-subtle-01);
+}
+
+.composer__custom {
+  margin: 0 0 0.5rem;
+  color: var(--cds-text-secondary);
+  font-size: 0.75rem;
+}
+
+.composer__row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.composer__row > .cds--form-item {
+  flex: 1;
+}
+
+.composer textarea {
+  resize: none;
+}
+
+/* ---- the research page ---- */
+
+.research {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-height: 0;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+/* In a scrolling column, nothing may shrink below its content. */
+.research > *,
+.chat > *,
+.sign-in > * {
+  flex-shrink: 0;
+}
+
+.research .cds--inline-notification {
+  max-width: none;
+  margin: 0;
+}
+
+.research__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.research__prompt textarea {
+  font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+}
+
+.research__placeholders {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.research__placeholders div {
+  display: grid;
+  grid-template-columns: 9rem 1fr;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+}
+
+.research__placeholders dd {
+  margin: 0;
+  color: var(--cds-text-secondary);
+}
+
+.research > .cds--btn {
+  align-self: flex-start;
+}
+
+/* ---- collapsed, and the bot check ---- */
+
+.agent-launcher.cds--btn {
+  position: fixed;
+  right: 1.5rem;
+  bottom: 1.5rem;
+  z-index: 10;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 20%);
+}
+
+.agent-launcher__count {
+  margin-left: 0.5rem;
+}
+
+.turnstile-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  background: var(--cds-background);
+}
+
+.turnstile-gate .cds--inline-loading {
+  width: auto;
+}
+
+/* On a phone the panel is a sheet along the bottom. */
+@media (max-width: 671px) {
+  .agent-panel {
+    left: 0 !important;
+    right: 0;
+    bottom: 0 !important;
+    top: auto !important;
+    width: auto !important;
+    height: min(75vh, 40rem) !important;
+    max-height: 75vh;
+  }
+
+  .agent-panel__header {
+    cursor: default;
+  }
+
+  .agent-panel__corner {
+    display: none;
+  }
+}

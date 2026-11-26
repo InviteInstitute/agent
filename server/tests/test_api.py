@@ -91,6 +91,8 @@ def test_research_turns_stay_out_of_the_student_chat(client, fake_llm):
     assert research["reply"]["prompt"]
     client.post(f"{STUDENT}/turns", json={"message": "b"})
     assert [m["body"] for m in client.get(STUDENT).json()["messages"]] == ["b", "Student reply."]
+    research_chat = client.get(STUDENT, params={"chat": "research"}).json()["messages"]
+    assert [m["body"] for m in research_chat] == ["a", "Research reply."]
 
 
 def test_an_unknown_model_is_refused(client):

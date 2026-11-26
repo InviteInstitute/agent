@@ -1,0 +1,30 @@
+{
+  "name": "agent-client",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "test": "vitest run",
+    "format": "prettier --write \"src/**/*.{js,jsx,css,scss}\" index.html",
+    "format:check": "prettier --check \"src/**/*.{js,jsx,css,scss}\" index.html"
+  },
+  "dependencies": {
+    "@carbon/icons-react": "11.92.0",
+    "@carbon/react": "1.121.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "8.0.0",
+    "@testing-library/react": "16.3.3",
+    "@testing-library/user-event": "14.6.13",
+    "@vitejs/plugin-react": "6.3.0",
+    "jsdom": "29.1.1",
+    "prettier": "3.10.1",
+    "sass": "1.108.2",
+    "vite": "8.3.8",
+    "vitest": "5.1.2"
+  }
+}

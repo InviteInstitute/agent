@@ -40,7 +40,7 @@ git clone --recurse-submodules https://github.com/InviteInstitute/agent
 cd agent
 cp .env.example .env        # set POSTGRES_PASSWORD and the LLM
 make install                # the server, in server/.venv
-make dev                    # Postgres and the API with reload, on 127.0.0.1:8005
+make dev                    # Postgres, the API on :8005 and the client on :5173
 ```
 
 Load a sample session and ask about it:
@@ -66,6 +66,7 @@ are in [docs/design.md](docs/design.md).
 | `server/agent/feedback.py` | the one pipeline that questions and check-ins share |
 | `server/agent/api.py` | the `/v1` routes |
 | `server/vendor/agent-lm-packages` | the shared learner-model engine (a submodule) |
+| `client/` | the page, in React with IBM Carbon in INVITE's theme |
 
 ## License
 
