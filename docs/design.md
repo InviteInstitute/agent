@@ -55,6 +55,8 @@ to be framed (`X-Frame-Options: SAMEORIGIN`), so studies are left for later.
 
 ## Slices
 
+All six are done, and the agent serves agent.inviteai.org, where vex-pedagogical-agent was.
+
 1. The server core, the schema, the pipeline and VEXcode VR, with tests and CI.
 2. ZANY. It needs a read-only role on ATLAS's log store.
 3. The Carbon client, with the frame and the chat on top.
