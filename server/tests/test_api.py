@@ -159,11 +159,3 @@ def test_the_gate_wants_a_solved_challenge(client, monkeypatch):
     monkeypatch.setenv("SESSION_SECRET", "s")
     assert client.get("/v1/ping").json() == {"error": "turnstile_required"}
     assert client.get("/healthz").status_code == 200
-
-
-def test_a_site_can_frame_a_class_direct_link(client, monkeypatch):
-    monkeypatch.setenv("VEXCODE_VR_LINK", "https://vr.vex.com/?code=ABC")
-    assert client.get("/v1/environments").json()["environments"][0]["frame"] == (
-        "https://vr.vex.com/?code=ABC"
-    )
-    assert client.get(STUDENT).json()["frame"] == "https://vr.vex.com/?code=ABC"

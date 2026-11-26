@@ -18,7 +18,6 @@ FIXTURES = Path(__file__).parent / "fixtures"
 def quiet_settings(monkeypatch):
     for name in (
         "ENVIRONMENTS",
-        "VEXCODE_VR_LINK",
         "NAVIGATOR_MODEL",
         "INVITE_HUB_TOKEN",
         "TRANSCRIBE_MODEL",
