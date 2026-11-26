@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "open sans",
+        "createdAt": "2026-11-26T08:37:32.308Z",
+        "reason": "Brand commitment in PRODUCT.md. The page matches ZANY, whose stylesheet sets Open Sans, and the user asked for the ZANY look"
+      }
+    ]
+  }
+}

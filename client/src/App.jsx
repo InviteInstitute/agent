@@ -1,17 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Eye,
-  EyeOff,
-  LifeBuoy,
-  LogOut,
-  MessageCircle,
-  Minus,
-  Volume2,
-  VolumeX,
-} from "lucide-react";
+import { Eye, EyeOff, LifeBuoy, LogOut, Minus, Volume2, VolumeX } from "lucide-react";
 import { api, readStored, writeStored } from "./api.js";
 import Avatar, { avatarInstalled } from "./Avatar.jsx";
 import Chat from "./Chat.jsx";
+import { CheckinNote, EdgeTab } from "./Edge.jsx";
 import Panel from "./Panel.jsx";
 import Research, { PRODUCTION_SETTINGS, describeOverrides, overridesFor } from "./Research.jsx";
 import SignIn from "./SignIn.jsx";
@@ -19,6 +11,7 @@ import VoiceButton, { canRecord } from "./VoiceButton.jsx";
 import { Notice, Spinner } from "./ui.jsx";
 
 const STUDENT_KEY = "agent:student";
+const SHORT_WINDOW = 720;
 const SETTINGS_KEY = "agent:settings";
 const MUTED_KEY = "agent:muted";
 const TUTOR_KEY = "agent:tutor";
@@ -64,6 +57,8 @@ export default function App() {
   const [seen, setSeen] = useState(0);
   const [moving, setMoving] = useState(false);
   const [panelRect, setPanelRect] = useState(null);
+  const [noteRect, setNoteRect] = useState(null);
+  const [laterId, setLaterId] = useState(null);
   // The 3D tutor, once its Unity build is installed. Showing it and its voice are choices per
   // browser, so a quiet classroom stays quiet and a slow computer can hide it.
   const [avatar, setAvatar] = useState(false);
@@ -119,6 +114,13 @@ export default function App() {
         setStudent(who);
         setSession({ frame: data.frame, sessionId: data.session_id, playground: data.playground });
         setMessages(data.messages.map(fromServer));
+        // A short window, such as a Chromebook's, has no room for the chat beside the
+        // playground. Once the agent can see the code the chat waits in its tab there, and
+        // check-ins slide out of it.
+        if (data.session_id && window.innerHeight < SHORT_WINDOW) {
+          setSeen(data.messages.filter((m) => m.role === "agent").length);
+          setOpen(false);
+        }
       } catch (error) {
         setSignInError(error.message);
         if (error.status === 404 || error.status === 400) {
@@ -260,6 +262,10 @@ export default function App() {
     setSeen(agentReplies);
     setOpen(false);
   };
+  const expand = () => {
+    setOpen(true);
+    requestAnimationFrame(() => document.getElementById("message")?.focus());
+  };
 
   const environment = useMemo(
     () => site?.environments.find((e) => e.id === student?.environment),
@@ -278,6 +284,9 @@ export default function App() {
         parts: latest.speech?.length ? latest.speech : [latest.body],
       }
     : null;
+  // A check-in that came while the chat was tucked away, until the student replies or leaves it.
+  const note =
+    !open && unseen && latest?.origin === "proactive" && latest.id !== laterId ? latest : null;
 
   if (siteError) {
     return (
@@ -316,24 +325,14 @@ export default function App() {
       ) : null}
       <span className="agent-panel__spacer" />
       {signedIn ? (
-        <button
-          type="button"
-          className="title-button"
-          aria-label="Sign out"
-          title="Sign out"
-          onClick={signOut}
-        >
-          <LogOut size={19} aria-hidden="true" />
+        <button type="button" className="bar-button" aria-label="Sign out" onClick={signOut}>
+          <LogOut size={18} aria-hidden="true" />
+          <span aria-hidden="true">Sign out</span>
         </button>
       ) : null}
-      <button
-        type="button"
-        className="title-button"
-        aria-label="Collapse chat"
-        title="Collapse chat"
-        onClick={collapse}
-      >
-        <Minus size={22} aria-hidden="true" />
+      <button type="button" className="bar-button" aria-label="Hide the chat" onClick={collapse}>
+        <Minus size={20} aria-hidden="true" />
+        <span aria-hidden="true">Hide</span>
       </button>
     </>
   );
@@ -341,7 +340,7 @@ export default function App() {
   // The tool bar under it, like ZANY's Code bar: Help, and the tutor's switches.
   const toolbar = signedIn ? (
     <>
-      <button type="button" className="help-pill" onClick={() => ask("")} disabled={busy}>
+      <button type="button" className="help-button" onClick={() => ask("")} disabled={busy}>
         <LifeBuoy size={16} strokeWidth={2.4} aria-hidden="true" />
         Help
       </button>
@@ -359,37 +358,38 @@ export default function App() {
             ? `Watching ${session.playground || "your code"}`
             : "Can't see your code yet"}
         </span>
+        <span className="code-status__short" aria-hidden="true">
+          {session.sessionId ? "Watching your code" : "Can't see code yet"}
+        </span>
       </p>
       {avatar && tutorShown ? (
         <button
           type="button"
-          className="square-button"
-          aria-label={muted ? "Turn the tutor's voice on" : "Mute the tutor"}
-          title={muted ? "Turn the tutor's voice on" : "Mute the tutor"}
-          aria-pressed={muted}
+          className="bar-button bar-button--light tutor-control"
+          aria-label={muted ? "Unmute the tutor" : "Mute the tutor"}
           onClick={() => setMuted((m) => !m)}
         >
           {muted ? (
-            <VolumeX size={19} aria-hidden="true" />
+            <VolumeX size={18} aria-hidden="true" />
           ) : (
-            <Volume2 size={19} aria-hidden="true" />
+            <Volume2 size={18} aria-hidden="true" />
           )}
+          <span aria-hidden="true">{muted ? "Unmute" : "Mute"}</span>
         </button>
       ) : null}
       {avatar ? (
         <button
           type="button"
-          className="square-button"
+          className="bar-button bar-button--light tutor-control"
           aria-label={tutorShown ? "Hide the tutor" : "Show the tutor"}
-          title={tutorShown ? "Hide the tutor" : "Show the tutor"}
-          aria-pressed={!tutorShown}
           onClick={() => setTutorShown((shown) => !shown)}
         >
           {tutorShown ? (
-            <Eye size={19} aria-hidden="true" />
+            <Eye size={18} aria-hidden="true" />
           ) : (
-            <EyeOff size={19} aria-hidden="true" />
+            <EyeOff size={18} aria-hidden="true" />
           )}
+          <span aria-hidden="true">Tutor</span>
         </button>
       ) : null}
     </>
@@ -412,7 +412,11 @@ export default function App() {
     ) : null;
 
   return (
-    <main className="agent-shell">
+    <main
+      className={
+        avatar && tutorShown && signedIn ? "agent-shell agent-shell--tutor" : "agent-shell"
+      }
+    >
       {frame ? (
         <iframe
           className={`environment-frame ${moving ? "environment-frame--inert" : ""}`}
@@ -428,7 +432,7 @@ export default function App() {
 
       {avatar ? (
         <Avatar
-          panel={open ? panelRect : null}
+          panel={open ? panelRect : note ? noteRect : null}
           visible={signedIn && tutorShown}
           utterance={signedIn ? utterance : null}
           muted={muted}
@@ -497,13 +501,25 @@ export default function App() {
             />
           )}
         </Panel>
-      ) : (
-        <button type="button" className="agent-launcher" onClick={() => setOpen(true)}>
-          <MessageCircle size={20} strokeWidth={2.4} aria-hidden="true" />
-          Open chat
-          {unseen ? <span className="agent-launcher__count">{unseen} new</span> : null}
-        </button>
-      )}
+      ) : null}
+
+      {note ? (
+        <CheckinNote
+          key={note.id}
+          message={note}
+          onReply={expand}
+          onLater={() => setLaterId(note.id)}
+          onRect={setNoteRect}
+        />
+      ) : null}
+
+      <EdgeTab
+        open={open}
+        signedIn={signedIn}
+        seesCode={Boolean(session?.sessionId)}
+        unseen={unseen}
+        onToggle={open ? collapse : () => setOpen(true)}
+      />
     </main>
   );
 }

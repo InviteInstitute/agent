@@ -24,8 +24,7 @@
   --cream: #fff8df;
   --near-black: #141414;
   --white: #ffffff;
-  --help: #dc247c;
-  --help-deep: #b51263;
+  --reader: #af127f;
   --alert: #e8455a;
   --alert-ink: #8a1525;
   --done: #1f8a4c;
@@ -239,28 +238,78 @@ svg.lucide {
   padding: 0;
 }
 
-/* ZANY's Help Me! button: a magenta pill. */
-.help-pill {
+/* Help, in ZANY's reader magenta, with the radius and bevel of ZANY's buttons. */
+.help-button {
   display: inline-flex;
+  flex: none;
   align-items: center;
   gap: 6px;
-  height: 34px;
-  padding: 0 16px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--help);
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid #7d0b5a;
+  border-radius: 6px;
+  background: var(--reader);
   color: var(--white);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.25),
+    inset 0 -3px 0 rgb(0 0 0 / 0.2);
   font-size: 13px;
   font-weight: 800;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
-.help-pill:hover:not(:disabled) {
-  background: var(--help-deep);
+.help-button:hover:not(:disabled) {
+  filter: brightness(1.1);
 }
 
-.help-pill:disabled {
+.help-button:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 3px rgb(0 0 0 / 0.25);
+}
+
+.help-button:disabled {
   opacity: 0.55;
+}
+
+/* ZANY's bar buttons: an icon over a small uppercase label. White on the blue title bar, dark
+   blue on the light tool bar. */
+.bar-button {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 48px;
+  height: 46px;
+  padding: 2px 6px 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--white);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.bar-button:hover {
+  background: rgb(255 255 255 / 0.18);
+}
+
+.bar-button:active {
+  background: rgb(0 40 110 / 0.18);
+}
+
+.bar-button--light {
+  height: 44px;
+  color: var(--blue-text);
+}
+
+.bar-button--light:hover {
+  background: rgb(255 255 255 / 0.45);
 }
 
 /* ZANY's Code bar buttons: white squares with a blue icon, deep blue when on. */
@@ -273,7 +322,7 @@ svg.lucide {
   border: 0;
   border-radius: 8px;
   background: var(--white);
-  color: #5f93db;
+  color: #6aa0e6;
   box-shadow: 0 1px 2px rgb(20 50 100 / 0.18);
 }
 
@@ -409,6 +458,8 @@ svg.lucide {
 .agent-panel {
   position: fixed;
   z-index: 10;
+  transform-origin: 100% 85%;
+  animation: open-from-tab 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
   display: flex;
   flex-direction: column;
   max-height: calc(100vh - 24px);
@@ -425,9 +476,9 @@ svg.lucide {
   display: flex;
   flex-shrink: 0;
   align-items: center;
-  gap: 10px;
-  height: 52px;
-  padding: 0 6px 0 16px;
+  gap: 8px;
+  height: 54px;
+  padding: 0 4px 0 16px;
   background: var(--vex-blue);
   color: var(--white);
   cursor: grab;
@@ -485,30 +536,15 @@ svg.lucide {
   white-space: nowrap;
 }
 
-.title-button {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--white);
-}
-
-.title-button:hover {
-  background: rgb(255 255 255 / 0.18);
-}
-
 /* The bar under the title: light blue, like ZANY's Code bar. */
 .agent-panel__toolbar {
+  container: toolbar / inline-size;
   display: flex;
   flex-shrink: 0;
   align-items: center;
-  gap: 8px;
-  height: 50px;
-  padding: 0 10px;
+  gap: 4px;
+  height: 52px;
+  padding: 0 4px 0 10px;
   background: var(--vex-blue-soft);
 }
 
@@ -551,6 +587,13 @@ svg.lucide {
   right: -6px;
   bottom: -6px;
   cursor: nwse-resize;
+}
+
+@keyframes open-from-tab {
+  from {
+    opacity: 0;
+    transform: translateX(16px) scale(0.97);
+  }
 }
 
 /* ---- signing in ---- */
@@ -610,7 +653,7 @@ svg.lucide {
 .turn--student {
   align-self: flex-end;
   border-radius: 14px 14px 4px 14px;
-  background: var(--vex-blue);
+  background: var(--focus);
   color: var(--white);
 }
 
@@ -637,8 +680,8 @@ svg.lucide {
   align-items: center;
   gap: 6px;
   margin: 0 0 4px;
-  color: var(--gold-deep);
-  font-size: 10.5px;
+  color: var(--gold-edge);
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -667,8 +710,8 @@ svg.lucide {
 }
 
 .turn--student .block-name {
-  background: var(--vex-blue-deep);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.4);
+  background: rgb(255 255 255 / 0.2);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.45);
 }
 
 /* The agent typing: three dots in its bubble, and words only when it is slow. */
@@ -773,6 +816,25 @@ svg.lucide {
   text-overflow: ellipsis;
 }
 
+.code-status__short {
+  display: none;
+}
+
+/* A narrow bar says it shorter rather than cutting it off. */
+@container toolbar (max-width: 460px) {
+  .code-status__text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .code-status__short {
+    display: inline;
+  }
+}
+
 .code-status__dot {
   flex: none;
   width: 11px;
@@ -800,8 +862,8 @@ svg.lucide {
   display: inline-block;
   padding: 1px 9px;
   border-radius: 999px;
-  background: #ece3fb;
-  color: #4b2a85;
+  background: var(--blue-wash);
+  color: var(--blue-text);
   font-size: 11.5px;
   font-weight: 700;
 }
@@ -1128,38 +1190,164 @@ svg.lucide {
 
 /* ---- collapsed, and the bot check ---- */
 
-.agent-launcher {
+/* The agent at rest: a VEX-blue tab on the right edge, its name running down it like a book's
+   spine. Open, it turns deep blue and points the way to tuck the chat back in. */
+.edge-tab {
   position: fixed;
-  right: 24px;
-  bottom: 24px;
-  z-index: 10;
-  display: inline-flex;
+  right: 0;
+  bottom: 250px;
+  z-index: 11;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  height: 48px;
-  padding: 0 18px 0 14px;
+  gap: 10px;
+  width: 40px;
+  padding: 14px 0 16px;
   border: 0;
-  border-radius: 999px;
+  border-radius: 10px 0 0 10px;
   background: var(--vex-blue);
   color: var(--white);
-  box-shadow: 0 6px 18px rgb(20 50 100 / 0.35);
-  font-size: 13px;
+  box-shadow: -3px 4px 14px rgb(20 50 100 / 0.3);
+  transition:
+    width 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 160ms ease-out;
+}
+
+.edge-tab:hover {
+  width: 46px;
+}
+
+.edge-tab:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.edge-tab--open {
+  background: var(--vex-blue-deep);
+  box-shadow: inset 2px 0 4px rgb(0 30 90 / 0.3);
+}
+
+.edge-tab__name {
+  writing-mode: vertical-rl;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
-.agent-launcher:hover {
-  background: var(--vex-blue-deep);
+.edge-tab__dot {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--white);
+  border-radius: 50%;
+  background: #8a96a3;
 }
 
-.agent-launcher__count {
-  padding: 1px 8px;
+.edge-tab__dot--seen {
+  background: var(--done);
+}
+
+.edge-tab__count {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border: 2px solid var(--white);
   border-radius: 999px;
   background: var(--alert);
-  font-size: 11px;
-  letter-spacing: 0;
-  text-transform: none;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 18px;
+}
+
+/* A check-in while the chat is tucked away: a small window with ZANY's gold title bar, sliding
+   out of the tab. This slide is the page's one authored motion. */
+.checkin-note {
+  position: fixed;
+  right: 52px;
+  bottom: 250px;
+  z-index: 10;
+  width: min(340px, calc(100vw - 68px));
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--white);
+  box-shadow:
+    0 14px 34px rgb(15 23 42 / 0.3),
+    0 3px 8px rgb(15 23 42 / 0.2);
+  animation: slide-out 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes slide-out {
+  from {
+    opacity: 0;
+    transform: translateX(48px);
+    clip-path: inset(0 0 0 100% round 6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    clip-path: inset(0 0 0 0 round 6px);
+  }
+}
+
+.checkin-note__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 50px;
+  padding: 0 4px 0 14px;
+  background: var(--gold);
+  color: var(--gold-text);
+}
+
+/* Mixed case and large, like the title of ZANY's playground window. */
+.checkin-note__title h2 {
+  flex: 1;
+  margin: 0;
+  color: var(--white);
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.checkin-note__close {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--white);
+}
+
+.checkin-note__close:hover {
+  background: rgb(255 255 255 / 0.18);
+}
+
+.checkin-note__close:focus-visible {
+  outline-color: var(--white);
+  outline-offset: -3px;
+}
+
+.checkin-note__body {
+  margin: 0;
+  padding: 14px 16px 4px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.checkin-note__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px 14px;
+}
+
+.checkin-note__actions .gold-button {
+  min-height: 40px;
 }
 
 .gate-window {
@@ -1224,7 +1412,10 @@ svg.lucide {
   .avatar,
   .spinner,
   .skeleton,
-  .thinking__dots span {
+  .thinking__dots span,
+  .agent-panel,
+  .checkin-note,
+  .edge-tab {
     transition: none;
     animation: none;
   }
@@ -1249,5 +1440,32 @@ svg.lucide {
 
   .agent-panel__corner {
     display: none;
+  }
+
+  .edge-tab--open {
+    display: none;
+  }
+
+  .agent-shell--tutor .agent-panel__header,
+  .agent-shell--tutor .checkin-note__title {
+    padding-left: 80px;
+  }
+
+  .agent-shell--tutor .id-pill {
+    display: none;
+  }
+
+  /* In the title bar, so drawn over the sheet. */
+  .avatar {
+    z-index: 12;
+  }
+}
+
+/* On a short window, such as a Chromebook's, the playground's camera buttons fill the right edge
+   higher up, so the tab and its note sit lower, beside the playground's empty lower gutter. */
+@media (max-height: 719px) {
+  .edge-tab,
+  .checkin-note {
+    bottom: 100px;
   }
 }
