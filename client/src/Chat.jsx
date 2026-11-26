@@ -1,15 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { Button, IconButton, InlineLoading, Tag, TextArea } from "@carbon/react";
 import {
-  CheckmarkFilled,
-  ChatLaunch,
-  Send,
+  Check,
+  MessageCircleMore,
+  SendHorizontal,
   ThumbsDown,
-  ThumbsDownFilled,
   ThumbsUp,
-  ThumbsUpFilled,
-  WarningFilled,
-} from "@carbon/icons-react";
+  TriangleAlert,
+} from "lucide-react";
+import { Spinner } from "./ui.jsx";
 
 // A reply usually takes a second or two. Past this the student is told it is still coming.
 export const SLOW_REPLY_MS = 6000;
@@ -54,17 +52,20 @@ function Guide({ guide }) {
           return (
             <li key={step.key} className={done ? "guide__step guide__step--done" : "guide__step"}>
               <span className="guide__marker" aria-hidden="true">
-                {done ? <CheckmarkFilled size={16} /> : index + 1}
+                {done ? <Check size={15} strokeWidth={3} /> : index + 1}
               </span>
               <span>
                 {step.text}
-                {done ? <span className="cds--visually-hidden"> Done.</span> : null}
+                {done ? <span className="visually-hidden"> Done.</span> : null}
               </span>
             </li>
           );
         })}
       </ol>
-      <p className="guide__status" role="status">
+      <p
+        className={guide.seesCode ? "guide__status guide__status--seen" : "guide__status"}
+        role="status"
+      >
         {guide.seesCode
           ? `I can see your code${guide.playground ? ` in ${guide.playground}` : ""}!`
           : "I can't see your code yet."}
@@ -81,14 +82,15 @@ function Thinking() {
     return () => clearTimeout(timer);
   }, []);
   return (
-    <InlineLoading
-      description={slow ? "Still thinking. This one is taking a moment…" : "Thinking…"}
-      className="turn__thinking"
+    <Spinner
+      className="thinking"
+      label={slow ? "Still thinking. This one is taking a moment…" : "Thinking…"}
     />
   );
 }
 
-// Replies name blocks in `backticks`, and models sometimes bold or italicize a word.
+// Replies name blocks in `backticks`, and models sometimes bold or italicize a word. A block
+// name shows as a small VEX block.
 export function renderInline(text) {
   const parts = [];
   const pattern = /(\*\*[^*]+\*\*|`[^`]+`|\*[^*\s][^*]*\*)/g;
@@ -127,39 +129,33 @@ function Rating({ message, onRate }) {
     }
   };
 
+  const thumb = (value, label, Icon) => (
+    <button
+      type="button"
+      className="thumb"
+      aria-label={label}
+      title={label}
+      aria-pressed={message.thumb === value}
+      onClick={() => send(value)}
+      disabled={state === "sending"}
+    >
+      <Icon size={17} />
+    </button>
+  );
+
   return (
     <div className="rating">
       <div className="rating__row">
-        <IconButton
-          kind="ghost"
-          size="sm"
-          label="This helped"
-          align="bottom"
-          aria-pressed={message.thumb === "up"}
-          onClick={() => send("up")}
-          disabled={state === "sending"}
-        >
-          {message.thumb === "up" ? <ThumbsUpFilled /> : <ThumbsUp />}
-        </IconButton>
-        <IconButton
-          kind="ghost"
-          size="sm"
-          label="This didn't help"
-          align="bottom"
-          aria-pressed={message.thumb === "down"}
-          onClick={() => send("down")}
-          disabled={state === "sending"}
-        >
-          {message.thumb === "down" ? <ThumbsDownFilled /> : <ThumbsDown />}
-        </IconButton>
-        <Button
-          kind="ghost"
-          size="sm"
+        {thumb("up", "This helped", ThumbsUp)}
+        {thumb("down", "This didn't help", ThumbsDown)}
+        <button
+          type="button"
+          className="text-button"
           onClick={() => setNoteOpen((open) => !open)}
           aria-expanded={noteOpen}
         >
           {noteOpen ? "Hide note" : "Add a note"}
-        </Button>
+        </button>
         {state && state !== "sending" ? (
           <span className="rating__state" role="status">
             {state}
@@ -168,24 +164,26 @@ function Rating({ message, onRate }) {
       </div>
       {noteOpen ? (
         <div className="rating__note">
-          <TextArea
+          <label className="visually-hidden" htmlFor={`note-${message.id}`}>
+            Note about this reply
+          </label>
+          <textarea
             id={`note-${message.id}`}
-            labelText="Note about this reply"
-            hideLabel
+            className="textarea"
             rows={2}
             maxLength={2000}
             placeholder="What helped, or what was confusing?"
             value={note}
             onChange={(e) => setNote(e.target.value)}
           />
-          <Button
-            size="sm"
-            kind="secondary"
+          <button
+            type="button"
+            className="gold-button"
             disabled={!note.trim() || !message.thumb || state === "sending"}
             onClick={() => send(message.thumb, note.trim())}
           >
             Send note
-          </Button>
+          </button>
           {!message.thumb ? <p className="rating__hint">Pick thumbs up or down first.</p> : null}
         </div>
       ) : null}
@@ -197,40 +195,37 @@ function Turn({ message, onRate }) {
   if (message.role === "student") {
     return (
       <article className="turn turn--student">
-        <span className="cds--visually-hidden">You said: </span>
+        <span className="visually-hidden">You said: </span>
         <p className="turn__body">{message.body}</p>
       </article>
     );
   }
+  const classes = ["turn", "turn--agent"];
+  if (message.origin === "proactive") classes.push("turn--checkin");
+  if (message.failed) classes.push("turn--failed");
   return (
-    <article
-      className={`turn turn--agent ${message.origin === "proactive" ? "turn--checkin" : ""} ${
-        message.failed ? "turn--failed" : ""
-      }`}
-    >
+    <article className={classes.join(" ")}>
       {message.origin === "proactive" ? (
         <p className="turn__label">
-          <ChatLaunch size={16} aria-hidden="true" />
+          <MessageCircleMore size={14} strokeWidth={2.4} aria-hidden="true" />
           Checking in
         </p>
       ) : (
-        <span className="cds--visually-hidden">INVITE Agent said: </span>
+        <span className="visually-hidden">INVITE Agent said: </span>
       )}
       {message.pending ? (
         <Thinking />
       ) : (
         <p className="turn__body">
           {message.failed ? (
-            <WarningFilled size={16} className="turn__warning" aria-label="Problem:" />
+            <TriangleAlert size={16} className="turn__warning" aria-label="Problem:" />
           ) : null}
           {renderInline(message.body)}
         </p>
       )}
       {message.model ? (
         <div className="turn__research">
-          <Tag size="sm" type="purple">
-            {message.model}
-          </Tag>
+          <span className="pill">{message.model}</span>
           {message.tokens ? <span>{message.tokens.toLocaleString()} tokens</span> : null}
           {message.prompt ? (
             <details>
@@ -272,7 +267,7 @@ export default function Chat({
 
   return (
     <>
-      <div className="chat" aria-label="Conversation" role="log">
+      <div className="chat dotted" aria-label="Conversation" role="log">
         {messages.length ? null : guide ? (
           <Guide guide={guide} />
         ) : (
@@ -288,10 +283,12 @@ export default function Chat({
       <form className="composer" onSubmit={send}>
         {customNote ? <p className="composer__custom">{customNote}</p> : null}
         <div className="composer__row">
-          <TextArea
+          <label className="visually-hidden" htmlFor="message">
+            Message
+          </label>
+          <textarea
             id="message"
-            labelText="Message"
-            hideLabel
+            className="textarea"
             rows={2}
             maxLength={2000}
             placeholder="Ask about your program, your bug, or what to try next."
@@ -302,9 +299,15 @@ export default function Chat({
             }}
           />
           {composerExtra}
-          <IconButton type="submit" label="Send" disabled={busy || !draft.trim()} align="top-end">
-            <Send />
-          </IconButton>
+          <button
+            type="submit"
+            className="gold-button gold-button--square"
+            aria-label="Send"
+            title="Send"
+            disabled={busy || !draft.trim()}
+          >
+            <SendHorizontal size={20} strokeWidth={2.4} />
+          </button>
         </div>
         {notice ? (
           <p className="composer__notice" role="alert">

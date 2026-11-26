@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { Layer } from "@carbon/react";
 
 // The chat floats over the coding environment: dragged by its header, resized from any corner.
-// While it moves, the frame underneath ignores the pointer, or it would swallow the drag. Its
-// body is a Carbon Layer over the panel, so fields and tiles take the next layer's colours.
+// While it moves, the frame underneath ignores the pointer, or it would swallow the drag. It is
+// dressed as a ZANY window: a VEX-blue title bar, then a light-blue tool bar.
 
 export const MIN_WIDTH = 360;
 export const MIN_HEIGHT = 480;
@@ -42,7 +41,16 @@ export function resized(start, corner, dx, dy, viewport) {
   return { x, y, width, height };
 }
 
-export default function Panel({ label, header, footer, children, resizable, onMoving, onRect }) {
+export default function Panel({
+  label,
+  header,
+  toolbar,
+  footer,
+  children,
+  resizable,
+  onMoving,
+  onRect,
+}) {
   const [rect, setRect] = useState(defaultRect);
   const gesture = useRef(null);
 
@@ -131,7 +139,8 @@ export default function Panel({ label, header, footer, children, resizable, onMo
       <header className="agent-panel__header" onPointerDown={(e) => begin(e, "drag")}>
         {header}
       </header>
-      <Layer className="agent-panel__body">{children}</Layer>
+      {toolbar ? <div className="agent-panel__toolbar">{toolbar}</div> : null}
+      <div className="agent-panel__body">{children}</div>
       {footer ? <footer className="agent-panel__footer">{footer}</footer> : null}
       {resizable
         ? CORNERS.map((corner) => (

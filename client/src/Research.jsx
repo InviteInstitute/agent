@@ -1,16 +1,4 @@
-import {
-  Accordion,
-  AccordionItem,
-  Button,
-  Checkbox,
-  InlineNotification,
-  NumberInput,
-  ProgressBar,
-  Select,
-  SelectItem,
-  SkeletonText,
-  TextArea,
-} from "@carbon/react";
+import { Notice } from "./ui.jsx";
 
 // The research page: a model, the prompt template and sampling for this browser's replies. The
 // settings ride on each turn as overrides, which sends it to the research chat, kept apart from
@@ -55,23 +43,21 @@ export default function Research({ config, error, onRetry, settings, onChange, t
   if (error) {
     return (
       <div className="research">
-        <InlineNotification
-          kind="error"
-          title="Couldn't load the agent settings"
-          subtitle={error}
-          lowContrast
-          hideCloseButton
-        />
-        <Button kind="tertiary" size="sm" onClick={onRetry}>
+        <Notice kind="error" title="Couldn't load the agent settings">
+          {error}
+        </Notice>
+        <button type="button" className="gold-button" onClick={onRetry}>
           Try again
-        </Button>
+        </button>
       </div>
     );
   }
   if (!config) {
     return (
       <div className="research" aria-busy="true">
-        <SkeletonText paragraph lineCount={6} />
+        {[90, 70, 95, 60, 85, 40].map((width) => (
+          <div key={width} className="skeleton" style={{ width: `${width}%` }} />
+        ))}
       </div>
     );
   }
@@ -83,104 +69,126 @@ export default function Research({ config, error, onRetry, settings, onChange, t
 
   return (
     <div className="research">
-      <InlineNotification
+      <Notice
         kind={overrides ? "warning" : "info"}
         title={overrides ? "Custom settings are on" : "Production settings"}
-        subtitle={
-          overrides
-            ? "Your replies go to a research chat and stay out of student data."
-            : "Replies match what students get."
-        }
-        lowContrast
-        hideCloseButton
-      />
-      {usage ? (
-        <ProgressBar
-          label="LLM tokens this session"
-          helperText={`${usage.used.toLocaleString()} of ${usage.limit.toLocaleString()}`}
-          value={Math.min(usage.used, usage.limit)}
-          max={usage.limit}
-          status={usage.used >= usage.limit ? "error" : "active"}
-          size="small"
-        />
-      ) : null}
-      <Select
-        id="research-model"
-        labelText="Model"
-        value={settings.model ?? config.defaults.model}
-        onChange={(e) => update({ model: e.target.value })}
-        invalid={Boolean(config.models_error)}
-        invalidText={config.models_error}
       >
-        {config.models.map((model) => (
-          <SelectItem
-            key={model}
-            value={model}
-            text={model === config.defaults.model ? `${model} (production)` : model}
+        {overrides
+          ? "Your replies go to a research chat and stay out of student data."
+          : "Replies match what students get."}
+      </Notice>
+      {usage ? (
+        <div className="research__usage">
+          <label className="micro" htmlFor="research-usage">
+            LLM tokens this session
+          </label>
+          <progress
+            id="research-usage"
+            value={Math.min(usage.used, usage.limit)}
+            max={usage.limit}
           />
-        ))}
-      </Select>
+          <p className="field__help">
+            {usage.used.toLocaleString()} of {usage.limit.toLocaleString()}
+          </p>
+        </div>
+      ) : null}
+      <div className="field">
+        <label className="micro" htmlFor="research-model">
+          Model
+        </label>
+        <select
+          id="research-model"
+          className="select"
+          value={settings.model ?? config.defaults.model}
+          onChange={(e) => update({ model: e.target.value })}
+          aria-invalid={Boolean(config.models_error)}
+        >
+          {config.models.map((model) => (
+            <option key={model} value={model}>
+              {model === config.defaults.model ? `${model} (production)` : model}
+            </option>
+          ))}
+        </select>
+        {config.models_error ? (
+          <p className="field__help composer__notice">{config.models_error}</p>
+        ) : null}
+      </div>
       <div className="research__row">
-        <NumberInput
-          id="research-temperature"
-          label="Temperature"
-          helperText="Empty is the model's default"
-          min={0}
-          max={2}
-          step={0.1}
-          allowEmpty
-          value={settings.temperature ?? ""}
-          onChange={(_, { value }) => update({ temperature: numberOrNull(value) })}
+        <div className="field">
+          <label className="micro" htmlFor="research-temperature">
+            Temperature
+          </label>
+          <input
+            id="research-temperature"
+            className="input"
+            type="number"
+            min={0}
+            max={2}
+            step={0.1}
+            value={settings.temperature ?? ""}
+            onChange={(e) => update({ temperature: numberOrNull(e.target.value) })}
+          />
+          <p className="field__help">Empty is the model's default</p>
+        </div>
+        <div className="field">
+          <label className="micro" htmlFor="research-max-tokens">
+            Max tokens
+          </label>
+          <input
+            id="research-max-tokens"
+            className="input"
+            type="number"
+            min={16}
+            max={4096}
+            step={16}
+            value={settings.maxTokens ?? ""}
+            onChange={(e) => update({ maxTokens: numberOrNull(e.target.value) })}
+          />
+          <p className="field__help">Empty is {config.defaults.max_tokens}</p>
+        </div>
+      </div>
+      <label className="research__check">
+        <input
+          type="checkbox"
+          checked={settings.trimReply}
+          onChange={(e) => update({ trimReply: e.target.checked })}
         />
-        <NumberInput
-          id="research-max-tokens"
-          label="Max tokens"
-          helperText={`Empty is ${config.defaults.max_tokens}`}
-          min={16}
-          max={4096}
-          step={16}
-          allowEmpty
-          value={settings.maxTokens ?? ""}
-          onChange={(_, { value }) => update({ maxTokens: numberOrNull(value) })}
+        Trim replies to bite size, as students get them
+      </label>
+      <div className="field">
+        <label className="micro" htmlFor="research-prompt">
+          Prompt template
+        </label>
+        <textarea
+          id="research-prompt"
+          className="textarea research__prompt"
+          rows={14}
+          spellCheck="false"
+          value={template}
+          onChange={(e) => update({ promptTemplate: e.target.value })}
         />
       </div>
-      <Checkbox
-        id="research-trim"
-        labelText="Trim replies to bite size, as students get them"
-        checked={settings.trimReply}
-        onChange={(_, { checked }) => update({ trimReply: checked })}
-      />
-      <TextArea
-        id="research-prompt"
-        className="research__prompt"
-        labelText="Prompt template"
-        rows={14}
-        spellCheck="false"
-        value={template}
-        onChange={(e) => update({ promptTemplate: e.target.value })}
-      />
-      <Accordion size="sm">
-        <AccordionItem title="Placeholders you can use">
-          <dl className="research__placeholders">
-            {Object.entries(config.placeholders).map(([name, description]) => (
-              <div key={name}>
-                <dt>
-                  <code>{`{${name}}`}</code>
-                </dt>
-                <dd>{description}</dd>
-              </div>
-            ))}
-          </dl>
-        </AccordionItem>
-      </Accordion>
-      <Button
-        kind="tertiary"
-        size="sm"
+      <details>
+        <summary>Placeholders you can use</summary>
+        <dl className="research__placeholders">
+          {Object.entries(config.placeholders).map(([name, description]) => (
+            <div key={name}>
+              <dt>
+                <code>{`{${name}}`}</code>
+              </dt>
+              <dd>{description}</dd>
+            </div>
+          ))}
+        </dl>
+      </details>
+      <button
+        type="button"
+        className="gold-button"
         disabled={!overrides}
         onClick={() => onChange({ ...PRODUCTION_SETTINGS })}
       >
         Reset to production
-      </Button>
+      </button>
     </div>
   );
 }

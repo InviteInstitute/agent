@@ -1,6 +1,48 @@
-/* The agent page: the coding environment fills the window, the chat floats over it. Colours and
-   type are Carbon's tokens in INVITE's theme (carbon.scss), so the panel reads like lm-dashboard
-   and ATLAS's researcher pages. */
+/* The agent page, in ZANY's look, which is VEXcode VR's: Open Sans, VEX blue bars, floating
+   windows with coloured title bars, gold buttons with a bevel, uppercase micro labels and a
+   dotted workspace. The colour names and values are ZANY's (zany/src/style.css), so the two read
+   as one product. */
+
+:root {
+  --vex-blue: #4d90f0;
+  --vex-blue-deep: #4382e4;
+  --vex-blue-soft: #92bcec;
+  --gold: #af883f;
+  --gold-button: #b18c40;
+  --gold-deep: #937234;
+  --gold-edge: #7d6026;
+  --gold-text: #f6f1e6;
+  --workspace: #f9f9f9;
+  --ink: #1f2933;
+  --muted: #5d6b7a;
+  --line: #dde3ea;
+  --soft-edge: #b8cad7;
+  --focus: #1d5fd1;
+  --blue-text: #163d73;
+  --blue-wash: #edf3fd;
+  --grey-wash: #f1f4f8;
+  --cream: #fff8df;
+  --near-black: #141414;
+  --white: #ffffff;
+  --help: #dc247c;
+  --help-deep: #b51263;
+  --alert: #e8455a;
+  --alert-ink: #8a1525;
+  --done: #1f8a4c;
+  --dot: #d9dee5;
+
+  font-family: "Open Sans", system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--workspace);
+  accent-color: var(--vex-blue);
+  caret-color: var(--focus);
+  color-scheme: light;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
 
 html,
 body,
@@ -9,52 +51,58 @@ body,
   margin: 0;
 }
 
-body {
-  font-family:
-    "IBM Plex Sans",
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Helvetica,
-    Arial,
-    sans-serif;
-  background: var(--cds-background);
-  color: var(--cds-text-primary);
-  -webkit-font-smoothing: antialiased;
-}
-
-/* The parts the browser draws carry the theme too. */
 ::selection {
-  background: var(--cds-highlight);
-  color: var(--cds-text-primary);
+  background: #cfe1fb;
+  color: var(--ink);
 }
 
-textarea,
-input {
-  caret-color: var(--cds-interactive);
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
 }
 
-.chat,
-.research {
-  scrollbar-width: thin;
-  scrollbar-color: var(--cds-border-strong-01) transparent;
+button {
+  cursor: pointer;
 }
 
-code,
-pre {
-  font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+button:disabled {
+  cursor: default;
 }
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+svg.lucide {
+  flex: none;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ZANY's workspace: a light grey with a faint dot grid. */
+.dotted {
+  background-color: var(--workspace);
+  background-image: radial-gradient(var(--dot) 1.2px, transparent 1.3px);
+  background-size: 22px 22px;
+}
+
+/* ---- the page ---- */
 
 .agent-shell {
   position: fixed;
   inset: 0;
   overflow: hidden;
-}
-
-.agent-shell--message {
-  display: grid;
-  place-items: center;
-  padding: 2rem;
 }
 
 .environment-frame {
@@ -70,49 +118,318 @@ pre {
   pointer-events: none;
 }
 
-.environment-placeholder {
+.environment-placeholder,
+.agent-screen {
   position: absolute;
   inset: 0;
   display: grid;
   place-items: center;
-  background-color: var(--cds-background);
-  background-image:
-    linear-gradient(var(--cds-border-subtle-01) 1px, transparent 1px),
-    linear-gradient(90deg, var(--cds-border-subtle-01) 1px, transparent 1px);
-  background-size: 2rem 2rem;
 }
 
 .environment-placeholder p {
   margin: 0;
-  padding: 0.5rem 1rem;
-  background: var(--cds-background);
-  color: var(--cds-text-secondary);
-  font-size: 0.875rem;
+  padding: 10px 18px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
 }
 
-/* ---- the panel ---- */
+/* ---- controls ---- */
+
+/* Labels over fields, the way ZANY labels its password: small, bold, uppercase. */
+.micro {
+  display: block;
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.field {
+  display: block;
+}
+
+.input,
+.textarea,
+.select {
+  display: block;
+  width: 100%;
+  border: 1.5px solid var(--soft-edge);
+  border-radius: 6px;
+  background: var(--white);
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.input,
+.select {
+  height: 44px;
+  padding: 0 12px;
+}
+
+.textarea {
+  padding: 10px 12px;
+  resize: none;
+}
+
+.input:focus,
+.textarea:focus,
+.select:focus {
+  border-color: var(--focus);
+  outline: 1px solid var(--focus);
+  outline-offset: 0;
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: #7b8794;
+}
+
+.field__help {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* VEX's gold button: a bevelled slab with dark text. */
+.gold-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--gold-edge);
+  border-radius: 6px;
+  background: var(--gold-button);
+  color: var(--near-black);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.28),
+    inset 0 -3px 0 rgb(0 0 0 / 0.18);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.gold-button:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.gold-button:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 3px rgb(0 0 0 / 0.25);
+}
+
+.gold-button:disabled {
+  opacity: 0.5;
+}
+
+.gold-button--wide {
+  width: 100%;
+}
+
+.gold-button--square {
+  width: 44px;
+  padding: 0;
+}
+
+/* ZANY's Help Me! button: a magenta pill. */
+.help-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--help);
+  color: var(--white);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.help-pill:hover:not(:disabled) {
+  background: var(--help-deep);
+}
+
+.help-pill:disabled {
+  opacity: 0.55;
+}
+
+/* ZANY's Code bar buttons: white squares with a blue icon, deep blue when on. */
+.square-button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: var(--white);
+  color: #5f93db;
+  box-shadow: 0 1px 2px rgb(20 50 100 / 0.18);
+}
+
+.square-button:hover:not(:disabled) {
+  color: var(--vex-blue-deep);
+}
+
+.square-button[aria-pressed="true"] {
+  background: var(--vex-blue-deep);
+  color: var(--white);
+  box-shadow: inset 0 1px 3px rgb(0 30 90 / 0.35);
+}
+
+.square-button:disabled {
+  opacity: 0.5;
+}
+
+.text-button {
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--focus);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.text-button:hover:not(:disabled) {
+  background: var(--blue-wash);
+}
+
+.text-button:disabled {
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+/* ZANY's level picker: one pill split in halves, the chosen half gold. */
+.halves {
+  display: flex;
+  overflow: hidden;
+  border: 1px solid #45463f;
+  border-radius: 6px;
+}
+
+.halves button {
+  flex: 1;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 0;
+  background: #d6d6d6;
+  color: var(--near-black);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.halves button + button {
+  border-left: 1px solid #45463f;
+}
+
+.halves button:hover:not([aria-pressed="true"]) {
+  background: var(--white);
+}
+
+.halves button[aria-pressed="true"] {
+  background: var(--gold-button);
+  box-shadow: inset 0 -3px 0 rgb(0 0 0 / 0.2);
+}
+
+.halves button:focus-visible {
+  outline-offset: -3px;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  border: 2px solid var(--blue-wash);
+  border-top-color: var(--vex-blue);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* A short message in a box: info in blue, a warning in cream, an error in red. */
+.notice {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--soft-edge);
+  border-radius: 8px;
+  background: var(--blue-wash);
+  color: var(--blue-text);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.notice svg {
+  margin-top: 1px;
+}
+
+.notice strong {
+  display: block;
+}
+
+.notice--warning {
+  border-color: #e6cf8f;
+  background: var(--cream);
+  color: #5c4511;
+}
+
+.notice--error {
+  border-color: #f2a8b2;
+  background: #fde8ea;
+  color: var(--alert-ink);
+}
+
+/* ---- the floating window ---- */
 
 .agent-panel {
   position: fixed;
   z-index: 10;
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - 1.5rem);
-  background: var(--cds-layer-01);
-  border: 1px solid var(--cds-border-subtle-01);
+  max-height: calc(100vh - 24px);
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--white);
   box-shadow:
-    0 2px 6px rgb(0 0 0 / 12%),
-    0 12px 32px rgb(0 0 0 / 16%);
+    0 14px 34px rgb(15 23 42 / 0.3),
+    0 3px 8px rgb(15 23 42 / 0.2);
 }
 
+/* The title bar: VEX blue, white bold name, and the student in ZANY's ID pill. */
 .agent-panel__header {
   display: flex;
   flex-shrink: 0;
   align-items: center;
-  gap: 0.5rem;
-  min-height: 3rem;
-  padding: 0 0.25rem 0 1rem;
-  border-bottom: 1px solid var(--cds-border-subtle-01);
+  gap: 10px;
+  height: 52px;
+  padding: 0 6px 0 16px;
+  background: var(--vex-blue);
+  color: var(--white);
   cursor: grab;
   touch-action: none;
   user-select: none;
@@ -122,33 +439,77 @@ pre {
   cursor: grabbing;
 }
 
+.agent-panel__header :focus-visible {
+  outline-color: var(--white);
+  outline-offset: -3px;
+}
+
 .agent-panel__title {
   margin: 0;
-  font-size: 0.875rem;
-  font-weight: 600;
-  line-height: 1.125rem;
-  letter-spacing: 0.16px;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
   white-space: nowrap;
-}
-
-/* Only the student's tag gives way when the header is tight. */
-.agent-panel__header > * {
-  flex-shrink: 0;
-}
-
-.agent-panel__header .cds--tag {
-  flex-shrink: 1;
-  min-width: 2.5rem;
-  max-width: 10rem;
-}
-
-/* Carbon keeps room on a button's right for an icon. Help has none, so it gives that back. */
-.agent-panel__header .cds--btn--primary {
-  padding-inline-end: 1rem;
 }
 
 .agent-panel__spacer {
   flex: 1;
+}
+
+.id-pill {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 4px 12px;
+  border-radius: 8px;
+  background: var(--vex-blue-deep);
+  box-shadow: inset 0 1px 2px rgb(0 30 90 / 0.2);
+  line-height: 1.2;
+}
+
+.id-pill span {
+  white-space: nowrap;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgb(255 255 255 / 0.78);
+}
+
+.id-pill strong {
+  max-width: 9rem;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.title-button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--white);
+}
+
+.title-button:hover {
+  background: rgb(255 255 255 / 0.18);
+}
+
+/* The bar under the title: light blue, like ZANY's Code bar. */
+.agent-panel__toolbar {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  height: 50px;
+  padding: 0 10px;
+  background: var(--vex-blue-soft);
 }
 
 .agent-panel__body {
@@ -158,41 +519,37 @@ pre {
   min-height: 0;
 }
 
-.agent-panel__body > .cds--loading-overlay,
-.agent-panel__body > .cds--loading {
-  margin: 2rem auto;
-}
-
 .agent-panel__footer {
   flex-shrink: 0;
-  padding: 0.5rem 1rem;
-  border-top: 1px solid var(--cds-border-subtle-01);
+  padding: 10px 14px 12px;
+  border-top: 1px solid var(--line);
+  background: var(--white);
 }
 
 .agent-panel__corner {
   position: absolute;
-  width: 1rem;
-  height: 1rem;
+  width: 16px;
+  height: 16px;
   touch-action: none;
 }
 .agent-panel__corner--nw {
-  top: -0.375rem;
-  left: -0.375rem;
+  top: -6px;
+  left: -6px;
   cursor: nwse-resize;
 }
 .agent-panel__corner--ne {
-  top: -0.375rem;
-  right: -0.375rem;
+  top: -6px;
+  right: -6px;
   cursor: nesw-resize;
 }
 .agent-panel__corner--sw {
-  bottom: -0.375rem;
-  left: -0.375rem;
+  bottom: -6px;
+  left: -6px;
   cursor: nesw-resize;
 }
 .agent-panel__corner--se {
-  right: -0.375rem;
-  bottom: -0.375rem;
+  right: -6px;
+  bottom: -6px;
   cursor: nwse-resize;
 }
 
@@ -201,20 +558,15 @@ pre {
 .sign-in {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
-  padding: 1rem 1rem 1.5rem;
+  gap: 18px;
+  padding: 18px 18px 20px;
 }
 
 .sign-in__lead {
   margin: 0;
-  color: var(--cds-text-secondary);
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-}
-
-.sign-in .cds--btn {
-  max-width: none;
-  width: 100%;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.45;
 }
 
 /* ---- the chat ---- */
@@ -223,25 +575,31 @@ pre {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 12px;
   min-height: 0;
-  padding: 1rem;
+  padding: 16px 14px;
   overflow-y: auto;
+  scrollbar-color: #c3ccd7 transparent;
+  scrollbar-width: thin;
+}
+
+.chat > *,
+.research > *,
+.sign-in > * {
+  flex-shrink: 0;
 }
 
 .chat__empty {
   margin: 0;
-  color: var(--cds-text-secondary);
-  font-size: 0.875rem;
-  line-height: 1.25rem;
+  color: var(--muted);
+  font-size: 14px;
 }
 
 .turn {
-  max-width: 88%;
-  padding: 0.625rem 0.875rem;
-  font-size: 0.875rem;
-  line-height: 1.375rem;
-  letter-spacing: 0.16px;
+  max-width: 86%;
+  padding: 10px 14px;
+  font-size: 14.5px;
+  line-height: 1.5;
 }
 
 .turn__body {
@@ -251,50 +609,90 @@ pre {
 
 .turn--student {
   align-self: flex-end;
-  background: var(--cds-highlight);
+  border-radius: 14px 14px 4px 14px;
+  background: var(--vex-blue);
+  color: var(--white);
 }
 
 .turn--agent {
   align-self: flex-start;
-  background: var(--cds-layer-02);
+  border: 1px solid var(--line);
+  border-radius: 14px 14px 14px 4px;
+  background: var(--grey-wash);
 }
 
-/* A check-in is the agent speaking first, so it says so above the message. */
+/* A check-in is the agent speaking first: cream, with a gold label above the message. */
+.turn--checkin {
+  border-color: #e6cf8f;
+  background: var(--cream);
+}
+
+.turn--failed {
+  border-color: #f2a8b2;
+  background: #fdf1f2;
+}
+
 .turn__label {
   display: flex;
   align-items: center;
-  gap: 0.375rem;
-  margin: 0 0 0.25rem;
-  color: var(--cds-interactive);
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.32px;
+  gap: 6px;
+  margin: 0 0 4px;
+  color: var(--gold-deep);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 .turn__warning {
-  margin-right: 0.375rem;
-  vertical-align: -0.1875rem;
-  fill: var(--cds-support-error);
+  margin-right: 6px;
+  vertical-align: -3px;
+  color: var(--alert);
 }
 
-.turn__thinking {
-  min-height: 1.375rem;
-}
-
+/* A block named in a reply looks like a VEX block: a blue chip with white bold text. */
 .block-name {
-  padding: 0 0.25rem;
-  background: var(--cds-layer-accent-01);
-  font-size: 0.8125rem;
+  display: inline-block;
+  margin: 1px 0;
+  padding: 0 7px;
+  border-radius: 5px;
+  background: var(--vex-blue);
+  color: var(--white);
+  box-shadow: inset 0 -2px 0 rgb(0 0 0 / 0.16);
+  font-family: "Open Sans", system-ui, sans-serif;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.7;
+  white-space: nowrap;
+}
+
+.turn--student .block-name {
+  background: var(--vex-blue-deep);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.4);
+}
+
+.thinking {
+  min-height: 22px;
 }
 
 .turn__research {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-  color: var(--cds-text-secondary);
-  font-size: 0.75rem;
+  gap: 8px;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.pill {
+  display: inline-block;
+  padding: 1px 9px;
+  border-radius: 999px;
+  background: #ece3fb;
+  color: #4b2a85;
+  font-size: 11.5px;
+  font-weight: 700;
 }
 
 .turn__research details {
@@ -302,102 +700,154 @@ pre {
 }
 
 .turn__research summary {
+  color: var(--focus);
+  font-weight: 700;
   cursor: pointer;
-  color: var(--cds-link-primary);
 }
 
 .turn__research pre {
   max-height: 16rem;
-  margin: 0.5rem 0 0;
-  padding: 0.5rem;
+  margin: 8px 0 0;
+  padding: 8px;
   overflow: auto;
-  background: var(--cds-layer-01);
-  font-size: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--white);
+  font:
+    12px/1.5 ui-monospace,
+    "SF Mono",
+    Menlo,
+    Consolas,
+    monospace;
   white-space: pre-wrap;
 }
 
 .rating {
-  margin: 0.25rem -0.5rem -0.375rem;
+  margin-top: 6px;
 }
 
 .rating__row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.125rem;
+  gap: 2px;
+  margin-left: -6px;
+}
+
+.thumb {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+}
+
+.thumb:hover:not(:disabled) {
+  background: var(--white);
+  color: var(--vex-blue-deep);
+}
+
+.thumb[aria-pressed="true"] {
+  color: var(--vex-blue-deep);
+}
+
+.thumb[aria-pressed="true"] svg {
+  fill: currentColor;
+  fill-opacity: 0.18;
 }
 
 .rating__state,
 .rating__hint {
-  margin: 0 0 0 0.5rem;
-  color: var(--cds-text-secondary);
-  font-size: 0.75rem;
+  margin: 0 0 0 6px;
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .rating__note {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.5rem;
-  padding: 0.25rem 0.5rem 0.5rem;
-}
-
-.rating__note .cds--form-item {
-  width: 100%;
+  gap: 8px;
+  padding-top: 6px;
 }
 
 .composer {
   flex-shrink: 0;
-  padding: 0.75rem 1rem 1rem;
-  border-top: 1px solid var(--cds-border-subtle-01);
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--line);
+  background: var(--white);
 }
 
 .composer__custom {
-  margin: 0 0 0.5rem;
-  color: var(--cds-text-secondary);
-  font-size: 0.75rem;
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .composer__notice {
-  margin: 0.5rem 0 0;
-  color: var(--cds-text-error);
-  font-size: 0.75rem;
+  margin: 8px 0 0;
+  color: var(--alert-ink);
+  font-size: 12.5px;
+  font-weight: 600;
 }
 
 .composer__row {
   display: flex;
   align-items: flex-end;
-  gap: 0.5rem;
+  gap: 8px;
 }
 
-.composer__row > .cds--form-item {
+.composer__row .textarea {
   flex: 1;
+  min-height: 44px;
+  max-height: 120px;
+  padding: 10px 12px;
+  font-size: 14.5px;
 }
 
-.composer textarea {
-  resize: none;
+.voice-button {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
 }
 
-/* ---- the first-run walkthrough, in the empty chat ---- */
+.voice-button[aria-pressed="true"] {
+  width: auto;
+  gap: 6px;
+  padding: 0 10px;
+  background: var(--alert);
+  color: var(--white);
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: none;
+}
+
+/* ---- the first-run walkthrough ---- */
 
 .guide {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  padding: 0.25rem 0;
+  gap: 14px;
+  padding: 2px 2px 4px;
 }
 
 .guide__title {
   margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
-  line-height: 1.375rem;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.3;
 }
 
 .guide__steps {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 12px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -405,44 +855,46 @@ pre {
 
 .guide__step {
   display: grid;
-  grid-template-columns: 1.5rem 1fr;
-  gap: 0.625rem;
+  grid-template-columns: 26px 1fr;
+  gap: 10px;
   align-items: start;
-  font-size: 0.875rem;
-  line-height: 1.375rem;
+  font-size: 14.5px;
+  line-height: 1.5;
 }
 
 .guide__marker {
   display: grid;
   place-items: center;
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
-  background: var(--cds-layer-accent-01);
-  color: var(--cds-text-secondary);
-  font-size: 0.75rem;
-  font-weight: 600;
+  background: var(--vex-blue);
+  color: var(--white);
+  font-size: 12.5px;
+  font-weight: 800;
 }
 
 .guide__step--done {
-  color: var(--cds-text-secondary);
+  color: var(--muted);
 }
 
 .guide__step--done .guide__marker {
-  background: none;
-  color: var(--cds-support-success);
-}
-
-.guide__step--done .guide__marker svg {
-  width: 1.25rem;
-  height: 1.25rem;
-  fill: currentColor;
+  background: var(--done);
 }
 
 .guide__status {
   margin: 0;
-  color: var(--cds-text-secondary);
-  font-size: 0.75rem;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--grey-wash);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.guide__status--seen {
+  background: #e3f4ea;
+  color: #155e34;
 }
 
 /* ---- the research page ---- */
@@ -451,56 +903,203 @@ pre {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 18px;
   min-height: 0;
-  padding: 1rem;
+  padding: 16px 16px 18px;
   overflow-y: auto;
-}
-
-/* In a scrolling column, nothing may shrink below its content. */
-.research > *,
-.chat > *,
-.sign-in > * {
-  flex-shrink: 0;
-}
-
-.research .cds--inline-notification {
-  max-width: none;
-  margin: 0;
+  scrollbar-color: #c3ccd7 transparent;
+  scrollbar-width: thin;
 }
 
 .research__row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+  gap: 12px;
 }
 
-.research__prompt textarea {
-  font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
-  font-size: 0.75rem;
-  line-height: 1.125rem;
+.research__usage progress {
+  display: block;
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px;
+  background: var(--line);
+  appearance: none;
+}
+
+.research__usage progress::-webkit-progress-bar {
+  background: var(--line);
+}
+
+.research__usage progress::-webkit-progress-value {
+  border-radius: 999px;
+  background: var(--vex-blue);
+}
+
+.research__usage progress::-moz-progress-bar {
+  border-radius: 999px;
+  background: var(--vex-blue);
+}
+
+.research__check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.research__check input {
+  width: 18px;
+  height: 18px;
+}
+
+.research__prompt {
+  min-height: 16rem;
+  font:
+    12.5px/1.55 ui-monospace,
+    "SF Mono",
+    Menlo,
+    Consolas,
+    monospace;
+  resize: vertical;
+}
+
+.research__label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.research details {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.research summary {
+  padding: 10px 12px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.research summary:hover {
+  background: var(--blue-wash);
 }
 
 .research__placeholders {
   margin: 0;
-  font-size: 0.75rem;
-  line-height: 1rem;
+  padding: 0 12px 10px;
+  font-size: 12.5px;
+  line-height: 1.4;
 }
 
 .research__placeholders div {
   display: grid;
-  grid-template-columns: 9rem 1fr;
-  gap: 0.5rem;
-  padding: 0.25rem 0;
+  grid-template-columns: 9.5rem 1fr;
+  gap: 8px;
+  padding: 4px 0;
 }
 
 .research__placeholders dd {
   margin: 0;
-  color: var(--cds-text-secondary);
+  color: var(--muted);
 }
 
-.research > .cds--btn {
-  align-self: flex-start;
+.research__placeholders code {
+  font:
+    12px ui-monospace,
+    "SF Mono",
+    Menlo,
+    Consolas,
+    monospace;
+  color: var(--blue-text);
+}
+
+.skeleton {
+  height: 14px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--grey-wash), var(--line), var(--grey-wash));
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* ---- collapsed, and the bot check ---- */
+
+.agent-launcher {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 18px 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--vex-blue);
+  color: var(--white);
+  box-shadow: 0 6px 18px rgb(20 50 100 / 0.35);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.agent-launcher:hover {
+  background: var(--vex-blue-deep);
+}
+
+.agent-launcher__count {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--alert);
+  font-size: 11px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.gate-window {
+  width: min(360px, calc(100vw - 32px));
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--white);
+  box-shadow:
+    0 14px 34px rgb(15 23 42 / 0.3),
+    0 3px 8px rgb(15 23 42 / 0.2);
+}
+
+.gate-window h1 {
+  margin: 0;
+  padding: 14px 16px;
+  background: var(--vex-blue);
+  color: var(--white);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.gate-window__body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 16px 20px;
+}
+
+.turnstile-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
 }
 
 /* ---- the 3D tutor ---- */
@@ -527,42 +1126,15 @@ pre {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .avatar {
+  .avatar,
+  .spinner,
+  .skeleton {
     transition: none;
+    animation: none;
   }
 }
 
-/* ---- collapsed, and the bot check ---- */
-
-.agent-launcher.cds--btn {
-  position: fixed;
-  right: 1.5rem;
-  bottom: 1.5rem;
-  z-index: 10;
-  box-shadow: 0 4px 16px rgb(0 0 0 / 20%);
-}
-
-.agent-launcher__count {
-  margin-left: 0.5rem;
-}
-
-.turnstile-gate {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  background: var(--cds-background);
-}
-
-.turnstile-gate .cds--inline-loading {
-  width: auto;
-}
-
-/* On a phone the panel is a sheet along the bottom. */
+/* On a phone the window is a sheet along the bottom. */
 @media (max-width: 671px) {
   .agent-panel {
     left: 0 !important;
@@ -570,18 +1142,13 @@ pre {
     bottom: 0 !important;
     top: auto !important;
     width: auto !important;
-    height: min(75vh, 40rem) !important;
-    max-height: 75vh;
+    height: min(78vh, 40rem) !important;
+    max-height: 78vh;
+    border-radius: 10px 10px 0 0;
   }
 
   .agent-panel__header {
-    gap: 0.25rem;
     cursor: default;
-  }
-
-  /* The header's buttons need the room. The panel keeps its name for assistive tech. */
-  .agent-panel__title {
-    display: none;
   }
 
   .agent-panel__corner {

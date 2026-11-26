@@ -1,22 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Button,
-  ContentSwitcher,
-  IconButton,
-  InlineNotification,
-  Loading,
-  Switch,
-  Tag,
-} from "@carbon/react";
-import {
-  Chat as ChatIcon,
-  Logout,
-  Minimize,
-  View,
-  ViewOff,
-  VolumeMute,
-  VolumeUp,
-} from "@carbon/icons-react";
+  Eye,
+  EyeOff,
+  LifeBuoy,
+  LogOut,
+  MessageCircle,
+  Minus,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
 import { api, readStored, writeStored } from "./api.js";
 import Avatar, { avatarInstalled } from "./Avatar.jsx";
 import Chat from "./Chat.jsx";
@@ -24,6 +16,7 @@ import Panel from "./Panel.jsx";
 import Research, { PRODUCTION_SETTINGS, describeOverrides, overridesFor } from "./Research.jsx";
 import SignIn from "./SignIn.jsx";
 import VoiceButton, { canRecord } from "./VoiceButton.jsx";
+import { Notice, Spinner } from "./ui.jsx";
 
 const STUDENT_KEY = "agent:student";
 const SETTINGS_KEY = "agent:settings";
@@ -288,25 +281,27 @@ export default function App() {
 
   if (siteError) {
     return (
-      <main className="agent-shell agent-shell--message">
-        <InlineNotification
-          kind="error"
-          title="The agent is not reachable"
-          subtitle={siteError}
-          hideCloseButton
-        />
+      <main className="agent-shell agent-screen dotted">
+        <Notice kind="error" title="The agent is not reachable">
+          {siteError}
+        </Notice>
       </main>
     );
   }
-  if (!site) return <Loading description="Loading the agent" withOverlay={false} />;
+  if (!site)
+    return (
+      <main className="agent-shell agent-screen dotted">
+        <Spinner label="Loading the agent…" />
+      </main>
+    );
 
+  // The title bar: the name, the student in ZANY's ID pill, sign out and collapse.
   const header = (
     <>
       <h1 className="agent-panel__title">INVITE Agent</h1>
       {signedIn ? (
-        <Tag
-          size="sm"
-          type="cool-gray"
+        <div
+          className="id-pill"
           title={[
             `Student ID ${student.studentId}`,
             environment?.needs_class_code ? `Class ${student.classCode}` : null,
@@ -315,67 +310,91 @@ export default function App() {
             .filter(Boolean)
             .join("\n")}
         >
-          {student.studentId}
-        </Tag>
+          <span>Student ID</span>
+          <strong>{student.studentId}</strong>
+        </div>
       ) : null}
       <span className="agent-panel__spacer" />
       {signedIn ? (
-        <>
-          <Button size="sm" onClick={() => ask("")} disabled={busy}>
-            Help
-          </Button>
-          {avatar ? (
-            <IconButton
-              kind="ghost"
-              size="sm"
-              label={tutorShown ? "Hide the tutor" : "Show the tutor"}
-              align="bottom"
-              aria-pressed={!tutorShown}
-              onClick={() => setTutorShown((shown) => !shown)}
-            >
-              {tutorShown ? <View /> : <ViewOff />}
-            </IconButton>
-          ) : null}
-          {avatar && tutorShown ? (
-            <IconButton
-              kind="ghost"
-              size="sm"
-              label={muted ? "Turn the tutor's voice on" : "Mute the tutor"}
-              align="bottom"
-              aria-pressed={muted}
-              onClick={() => setMuted((m) => !m)}
-            >
-              {muted ? <VolumeMute /> : <VolumeUp />}
-            </IconButton>
-          ) : null}
-          <IconButton kind="ghost" size="sm" label="Sign out" align="bottom" onClick={signOut}>
-            <Logout />
-          </IconButton>
-        </>
+        <button
+          type="button"
+          className="title-button"
+          aria-label="Sign out"
+          title="Sign out"
+          onClick={signOut}
+        >
+          <LogOut size={19} aria-hidden="true" />
+        </button>
       ) : null}
-      <IconButton
-        kind="ghost"
-        size="sm"
-        label="Collapse chat"
-        align="bottom-end"
+      <button
+        type="button"
+        className="title-button"
+        aria-label="Collapse chat"
+        title="Collapse chat"
         onClick={collapse}
       >
-        <Minimize />
-      </IconButton>
+        <Minus size={22} aria-hidden="true" />
+      </button>
     </>
   );
 
+  // The tool bar under it, like ZANY's Code bar: Help, and the tutor's switches.
+  const toolbar = signedIn ? (
+    <>
+      <button type="button" className="help-pill" onClick={() => ask("")} disabled={busy}>
+        <LifeBuoy size={16} strokeWidth={2.4} aria-hidden="true" />
+        Help
+      </button>
+      <span className="agent-panel__spacer" />
+      {avatar && tutorShown ? (
+        <button
+          type="button"
+          className="square-button"
+          aria-label={muted ? "Turn the tutor's voice on" : "Mute the tutor"}
+          title={muted ? "Turn the tutor's voice on" : "Mute the tutor"}
+          aria-pressed={muted}
+          onClick={() => setMuted((m) => !m)}
+        >
+          {muted ? (
+            <VolumeX size={19} aria-hidden="true" />
+          ) : (
+            <Volume2 size={19} aria-hidden="true" />
+          )}
+        </button>
+      ) : null}
+      {avatar ? (
+        <button
+          type="button"
+          className="square-button"
+          aria-label={tutorShown ? "Hide the tutor" : "Show the tutor"}
+          title={tutorShown ? "Hide the tutor" : "Show the tutor"}
+          aria-pressed={!tutorShown}
+          onClick={() => setTutorShown((shown) => !shown)}
+        >
+          {tutorShown ? (
+            <Eye size={19} aria-hidden="true" />
+          ) : (
+            <EyeOff size={19} aria-hidden="true" />
+          )}
+        </button>
+      ) : null}
+    </>
+  ) : null;
+
   const footer =
     signedIn && research ? (
-      <ContentSwitcher
-        size="sm"
-        selectedIndex={view === "chat" ? 0 : 1}
-        onChange={({ name }) => setView(name)}
-        aria-label="View"
-      >
-        <Switch name="chat" text="Chat" />
-        <Switch name="research" text="Research" />
-      </ContentSwitcher>
+      <div className="halves" role="group" aria-label="View">
+        <button type="button" aria-pressed={view === "chat"} onClick={() => setView("chat")}>
+          Chat
+        </button>
+        <button
+          type="button"
+          aria-pressed={view === "research"}
+          onClick={() => setView("research")}
+        >
+          Research
+        </button>
+      </div>
     ) : null;
 
   return (
@@ -407,6 +426,7 @@ export default function App() {
         <Panel
           label="INVITE Agent chat"
           header={header}
+          toolbar={toolbar}
           footer={footer}
           resizable={signedIn}
           onMoving={setMoving}
@@ -414,7 +434,9 @@ export default function App() {
         >
           {!signedIn ? (
             student && !signInError ? (
-              <Loading description="Finding your session" withOverlay={false} small />
+              <div className="sign-in">
+                <Spinner label="Finding your session…" />
+              </div>
             ) : (
               <SignIn
                 environments={site.environments}
@@ -463,14 +485,11 @@ export default function App() {
           )}
         </Panel>
       ) : (
-        <Button className="agent-launcher" renderIcon={ChatIcon} onClick={() => setOpen(true)}>
+        <button type="button" className="agent-launcher" onClick={() => setOpen(true)}>
+          <MessageCircle size={20} strokeWidth={2.4} aria-hidden="true" />
           Open chat
-          {unseen ? (
-            <Tag size="sm" type="red" className="agent-launcher__count">
-              {unseen} new
-            </Tag>
-          ) : null}
-        </Button>
+          {unseen ? <span className="agent-launcher__count">{unseen} new</span> : null}
+        </button>
       )}
     </main>
   );

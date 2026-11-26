@@ -1,13 +1,6 @@
 import { useState } from "react";
-import {
-  Button,
-  Form,
-  InlineNotification,
-  RadioButton,
-  RadioButtonGroup,
-  TextInput,
-} from "@carbon/react";
-import { ArrowRight } from "@carbon/icons-react";
+import { ArrowRight } from "lucide-react";
+import { Notice } from "./ui.jsx";
 
 // The start card. A teacher's link can fill it in: ?env=zany&class=room-4&student=S01.
 export function linkedStudent(search = window.location.search) {
@@ -17,6 +10,24 @@ export function linkedStudent(search = window.location.search) {
     studentId: query.get("student") || "",
     classCode: query.get("class") || "",
   };
+}
+
+function Field({ id, label, ...input }) {
+  return (
+    <div className="field">
+      <label className="micro" htmlFor={id}>
+        {label}
+      </label>
+      <input
+        id={id}
+        className="input"
+        autoComplete="off"
+        spellCheck="false"
+        maxLength={100}
+        {...input}
+      />
+    </div>
+  );
 }
 
 export default function SignIn({ environments, onSignIn, pending, error }) {
@@ -40,58 +51,56 @@ export default function SignIn({ environments, onSignIn, pending, error }) {
   };
 
   return (
-    <Form className="sign-in" onSubmit={submit} aria-label="Sign in">
+    <form className="sign-in" onSubmit={submit} aria-label="Sign in">
       <p className="sign-in__lead">
         Hi! I'm your coding helper. Sign in with what your teacher gave you.
       </p>
       {environments.length > 1 ? (
-        <RadioButtonGroup
-          legendText="Where are you coding?"
-          name="environment"
-          valueSelected={environment}
-          onChange={setEnvironment}
-          orientation="horizontal"
-        >
-          {environments.map((e) => (
-            <RadioButton key={e.id} id={`environment-${e.id}`} labelText={e.name} value={e.id} />
-          ))}
-        </RadioButtonGroup>
+        <div role="group" aria-labelledby="environment-label">
+          <span className="micro" id="environment-label">
+            Where are you coding?
+          </span>
+          <div className="halves">
+            {environments.map((e) => (
+              <button
+                key={e.id}
+                type="button"
+                aria-pressed={e.id === environment}
+                onClick={() => setEnvironment(e.id)}
+                disabled={pending}
+              >
+                {e.name}
+              </button>
+            ))}
+          </div>
+        </div>
       ) : null}
       {chosen.needs_class_code ? (
-        <TextInput
+        <Field
           id="class-code"
-          labelText="Class code"
+          label="Class code"
           value={classCode}
           onChange={(e) => setClassCode(e.target.value)}
-          autoComplete="off"
-          spellCheck="false"
-          maxLength={100}
           disabled={pending}
         />
       ) : null}
-      <TextInput
+      <Field
         id="student-id"
-        labelText="Student ID"
+        label="Student ID"
         placeholder="e.g. mars-042"
         value={studentId}
         onChange={(e) => setStudentId(e.target.value)}
-        autoComplete="off"
-        spellCheck="false"
-        maxLength={100}
         disabled={pending}
       />
       {error ? (
-        <InlineNotification
-          kind="error"
-          title="Couldn't start"
-          subtitle={error}
-          lowContrast
-          hideCloseButton
-        />
+        <Notice kind="error" title="Couldn't start">
+          {error}
+        </Notice>
       ) : null}
-      <Button type="submit" renderIcon={ArrowRight} disabled={!ready || pending}>
+      <button type="submit" className="gold-button gold-button--wide" disabled={!ready || pending}>
         {pending ? "Starting…" : "Start chat"}
-      </Button>
-    </Form>
+        <ArrowRight size={18} strokeWidth={2.4} aria-hidden="true" />
+      </button>
+    </form>
   );
 }

@@ -82,7 +82,7 @@ tutor is installed by hand with `avatar/install.sh` and is kept across deploys.
 | `server/agent/feedback.py` | the one pipeline that questions and check-ins share |
 | `server/agent/api.py` | the `/v1` routes |
 | `server/vendor/agent-lm-packages` | the shared learner-model engine (a submodule) |
-| `client/` | the page, in React with IBM Carbon in INVITE's theme |
+| `client/` | the page, in React, dressed like ZANY and VEXcode VR |
 | `avatar/` | the 3D tutor's page, and where its Unity build is installed |
 
 ## License

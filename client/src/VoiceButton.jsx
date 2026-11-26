@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { IconButton } from "@carbon/react";
-import { Microphone, StopFilled } from "@carbon/icons-react";
+import { Mic, Square } from "lucide-react";
 
 // Ask out loud: tap to record, tap again to send. The browser records WebM/Opus, which the
 // server's speech-to-text takes as is, and stops on its own after MAX_SECONDS.
@@ -68,17 +67,25 @@ export default function VoiceButton({ disabled, onStart, onRecorded, onError }) 
   };
 
   const recording = seconds !== null;
+  const clock = `0:${String(seconds).padStart(2, "0")}`;
   return (
-    <IconButton
-      kind={recording ? "danger--primary" : "ghost"}
-      label={recording ? `Stop and send (0:${String(seconds).padStart(2, "0")})` : "Ask out loud"}
-      align="top-end"
+    <button
+      type="button"
+      className="square-button voice-button"
+      aria-label={recording ? `Stop and send (${clock})` : "Ask out loud"}
+      title={recording ? "Stop and send" : "Ask out loud"}
       onClick={recording ? stop : start}
       disabled={disabled && !recording}
       aria-pressed={recording}
-      className="voice-button"
     >
-      {recording ? <StopFilled /> : <Microphone />}
-    </IconButton>
+      {recording ? (
+        <>
+          <Square size={14} fill="currentColor" aria-hidden="true" />
+          <span aria-hidden="true">{clock}</span>
+        </>
+      ) : (
+        <Mic size={20} aria-hidden="true" />
+      )}
+    </button>
   );
 }

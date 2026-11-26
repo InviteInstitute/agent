@@ -8,7 +8,7 @@ afterEach(() => {
   sessionStorage.clear();
 });
 
-// jsdom has no ResizeObserver, which Carbon's TextArea uses.
+// jsdom has no ResizeObserver, which the panel uses to report its size.
 globalThis.ResizeObserver ??= class {
   observe() {}
   unobserve() {}
