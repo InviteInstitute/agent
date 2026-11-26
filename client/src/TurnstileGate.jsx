@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Notice, Spinner } from "./ui.jsx";
 
-// The Cloudflare Turnstile challenge, full screen, shown when the API asks for it (api.js sends
+// Cloudflare's Turnstile widget on a plain page, as Cloudflare draws it, shown when the API asks for it (api.js sends
 // "turnstile:required"). Solving it sets the cookie, and the page reloads with it.
 const SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || "0x4AAAAAAD9y1rcwgwx5PODV";
 
@@ -57,19 +56,9 @@ export default function TurnstileGate() {
 
   if (!open) return null;
   return (
-    <div className="turnstile-gate dotted" role="dialog" aria-label="Checking you're not a bot">
-      <section className="gate-window">
-        <h1>One quick check</h1>
-        <div className="gate-window__body">
-          <Spinner label="Checking you're not a bot…" />
-          <div ref={box} />
-          {failed ? (
-            <Notice kind="error" title="That didn't work">
-              Reload the page to try again.
-            </Notice>
-          ) : null}
-        </div>
-      </section>
+    <div className="turnstile-gate" role="dialog" aria-label="Checking you're not a bot">
+      <div ref={box} />
+      {failed ? <p>That didn't work. Reload the page to try again.</p> : null}
     </div>
   );
 }
