@@ -152,7 +152,15 @@ function Turn({ message, onRate }) {
   );
 }
 
-export default function Chat({ messages, onSend, onRate, busy, customNote, composerExtra }) {
+export default function Chat({
+  messages,
+  onSend,
+  onRate,
+  busy,
+  customNote,
+  notice,
+  composerExtra,
+}) {
   const [draft, setDraft] = useState("");
   const end = useRef(null);
 
@@ -202,6 +210,11 @@ export default function Chat({ messages, onSend, onRate, busy, customNote, compo
             <Send />
           </IconButton>
         </div>
+        {notice ? (
+          <p className="composer__notice" role="alert">
+            {notice}
+          </p>
+        ) : null}
       </form>
     </>
   );

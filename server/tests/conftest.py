@@ -16,7 +16,15 @@ FIXTURES = Path(__file__).parent / "fixtures"
 
 @pytest.fixture(autouse=True)
 def quiet_settings(monkeypatch):
-    for name in ("ENVIRONMENTS", "AVATAR_ENABLED", "NAVIGATOR_MODEL", "INVITE_HUB_TOKEN"):
+    for name in (
+        "ENVIRONMENTS",
+        "AVATAR_ENABLED",
+        "NAVIGATOR_MODEL",
+        "INVITE_HUB_TOKEN",
+        "TRANSCRIBE_MODEL",
+        "CHECKINS_ENABLED",
+        "TRIGGER_DISABLED",
+    ):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("TURNSTILE", "off")
     monkeypatch.setenv("OPENAI_API_KEY", "test")

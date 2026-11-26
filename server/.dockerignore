@@ -6,3 +6,4 @@
 tests
 vendor/agent-lm-packages/.git
 vendor/agent-lm-packages/build
+models

@@ -67,6 +67,7 @@ are in [docs/design.md](docs/design.md).
 | `server/agent/api.py` | the `/v1` routes |
 | `server/vendor/agent-lm-packages` | the shared learner-model engine (a submodule) |
 | `client/` | the page, in React with IBM Carbon in INVITE's theme |
+| `avatar/` | the 3D tutor's page, and where its Unity build is installed |
 
 ## License
 

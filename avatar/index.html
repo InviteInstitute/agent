@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>INVITE Agent tutor</title>
+    <style>
+      /* The agent page embeds this transparent over the coding environment, so only the
+         character shows (the build's TransparentBackground.jslib clears the canvas). */
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: transparent;
+        overflow: hidden;
+      }
+      #unity-canvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="unity-canvas"></canvas>
+    <script>
+      // The Unity WebGL tutor, character only. The agent page (client/src/Avatar.jsx) draws the
+      // chat and tells this page what to say over postMessage. The scene's ChatLLM component
+      // lives on the EventSystem object.
+      const NAME = "avatar";
+      const CHATLLM = "EventSystem";
+      const query = new URLSearchParams(location.search);
+      const framing = query.get("framing") || "1";
+      const parent = window.parent !== window ? window.parent : null;
+      const tell = (message) => parent?.postMessage(message, location.origin);
+      // Speech comes from the agent's own API, same-origin, so the bot-check cookie goes along.
+      const clip = (text) => `/v1/tts?text=${encodeURIComponent(text)}`;
+      let unity = null;
+      let started = false;
+
+      window.addEventListener("message", (event) => {
+        if (event.origin !== location.origin || event.source !== parent || !unity) return;
+        const data = event.data || {};
+        if (data.type === "speak" && data.text) {
+          // One clip per sentence (the server's split), so the first plays while the rest are
+          // made. Muted, the character still gestures.
+          const parts = Array.isArray(data.parts) && data.parts.length ? data.parts : [data.text];
+          const audios = data.audio === false ? [] : parts.map(clip);
+          unity.SendMessage(CHATLLM, "Speak", JSON.stringify({ text: data.text, audios }));
+        }
+        if (data.type === "hush") unity.SendMessage(CHATLLM, "Hush");
+        if (data.type === "framing" && data.framing) {
+          unity.SendMessage(CHATLLM, "SetFraming", String(data.framing));
+        }
+      });
+
+      // "Ready" only once the engine has loaded and ChatLLM has started (AvatarEvents.jslib).
+      // A message in between reached uninitialized audio and broke the avatar for the visit.
+      const announce = () => unity && started && tell({ type: "avatar-ready" });
+      window.addEventListener("avatar-started", () => {
+        started = true;
+        announce();
+      });
+      window.addEventListener("avatar-speaking", (event) =>
+        tell({ type: "avatar-speaking", speaking: event.detail }),
+      );
+
+      // build.json (written by install.sh) names the build's version. It is read uncached, and
+      // every build file is asked for as ?v=<version>, so a new build never mixes with old copies.
+      fetch(`build/build.json?t=${Date.now()}`, { cache: "no-store" })
+        .then((response) => (response.ok ? response.json() : Promise.reject()))
+        .then(({ version }) => load(`?v=${encodeURIComponent(version)}`))
+        .catch(() => tell({ type: "avatar-missing" }));
+
+      function load(v) {
+        const script = document.createElement("script");
+        script.src = `build/Build/${NAME}.loader.js${v}`;
+        script.onload = () =>
+          createUnityInstance(document.querySelector("#unity-canvas"), {
+            dataUrl: `build/Build/${NAME}.data${v}`,
+            frameworkUrl: `build/Build/${NAME}.framework.js${v}`,
+            codeUrl: `build/Build/${NAME}.wasm${v}`,
+            streamingAssetsUrl: "build/StreamingAssets",
+            productName: "INVITE Agent tutor",
+          }).then((instance) => {
+            // The build's ChatLLM still reads this config. In avatar mode it only shows the
+            // character and says what it is sent.
+            instance.SendMessage(
+              CHATLLM,
+              "ReceiveConfigJson",
+              JSON.stringify({
+                serverurl: location.origin,
+                endpoint: "",
+                student_id: "",
+                audioFeedback: "true",
+                compact: "false",
+                mode: "avatar",
+                framing,
+              }),
+            );
+            unity = instance;
+            announce();
+          });
+        script.onerror = () => tell({ type: "avatar-missing" });
+        document.body.appendChild(script);
+      }
+    </script>
+  </body>
+</html>

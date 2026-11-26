@@ -14,7 +14,7 @@ function describe(detail, status) {
   return `The agent answered with an error (${status}).`;
 }
 
-async function request(path, { method = "GET", body, query } = {}) {
+async function request(path, { method = "GET", body, query, form } = {}) {
   const url = new URL(`/v1${path}`, window.location.origin);
   for (const [key, value] of Object.entries(query || {})) {
     if (value !== null && value !== undefined && value !== "") url.searchParams.set(key, value);
@@ -22,7 +22,7 @@ async function request(path, { method = "GET", body, query } = {}) {
   const response = await fetch(url, {
     method,
     headers: body === undefined ? {} : { "Content-Type": "application/json" },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: form ?? (body === undefined ? undefined : JSON.stringify(body)),
     credentials: "same-origin",
   });
   if (response.status === 204) return null;
@@ -73,6 +73,15 @@ export const api = {
       }
     });
     return source;
+  },
+  transcribe: (student, recording) => {
+    const form = new FormData();
+    form.append("audio", recording, "question.webm");
+    return request(`${studentPath(student)}/transcriptions`, {
+      method: "POST",
+      form,
+      query: studentQuery(student),
+    });
   },
   saveSettings: (student, overrides) =>
     request(`${studentPath(student)}/settings`, {

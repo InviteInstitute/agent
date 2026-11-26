@@ -7,7 +7,10 @@ RUN pip install --no-cache-dir /app/vendor/agent-lm-packages
 COPY pyproject.toml /app/
 COPY agent /app/agent
 COPY migrations /app/migrations
-RUN pip install --no-cache-dir /app
+# Editable, so the package reads its migrations and models from /app.
+RUN pip install --no-cache-dir -e /app
+# The tutor's voice (8.5 MB), baked in so it works without a download at start.
+RUN python -m agent fetch-voice
 
 RUN useradd --system --uid 10001 agent
 USER agent

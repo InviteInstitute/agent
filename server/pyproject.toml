@@ -17,6 +17,11 @@ dependencies = [
     "openai==3.59.0",
     "httpx==0.28.1",
     "itsdangerous==2.2.0",
+    "python-multipart==0.0.20",
+    # The tutor's voice (agent/speech.py): Paradee v1.2 pinned to its tag's commit as a tarball,
+    # and the spaCy model its G2P loads, which it would otherwise download at runtime.
+    "paradee @ https://github.com/sahilmahendrakar/paradee/archive/aae3cc46657bc69c6dbf9573bba556fb233f6bc0.tar.gz",
+    "en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl",
 ]
 
 [project.optional-dependencies]
@@ -27,6 +32,8 @@ include = ["agent*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# misaki (Paradee's G2P) still uses an importlib.resources call deprecated in 3.11.
+filterwarnings = ["ignore:open_text is deprecated:DeprecationWarning:misaki"]
 
 [tool.ruff]
 line-length = 100

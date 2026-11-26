@@ -18,8 +18,8 @@ const ZANY = { id: "zany", name: "ZANY", needs_class_code: true, frame: null };
 function serve(routes) {
   const calls = [];
   global.fetch = vi.fn(async (url, init = {}) => {
-    const u = new URL(url);
-    const body = init.body ? JSON.parse(init.body) : undefined;
+    const u = new URL(url, window.location.origin);
+    const body = init.body && !(init.body instanceof FormData) ? JSON.parse(init.body) : undefined;
     calls.push({
       method: init.method || "GET",
       path: u.pathname,
@@ -27,6 +27,7 @@ function serve(routes) {
       body,
     });
     const key = `${init.method || "GET"} ${u.pathname}`;
+    if (init.body instanceof FormData) calls.at(-1).form = init.body;
     const answer = typeof routes[key] === "function" ? routes[key](body, u) : routes[key];
     const [status, data] = answer ?? [404, { detail: "Not found" }];
     return { ok: status < 300, status, json: async () => data };
@@ -80,6 +81,7 @@ describe("the agent page", () => {
     expect(calls.find((c) => c.path.endsWith("/turns")).body).toEqual({
       message: "why won't it move",
       overrides: null,
+      speak: false,
     });
     expect(JSON.parse(sessionStorage.getItem("agent:student")).studentId).toBe("S01");
 
@@ -269,5 +271,94 @@ describe("check-ins", () => {
     act(() => sources[0].send(checkin));
     expect(await screen.findAllByText("Still there?")).toHaveLength(1);
     expect(screen.getByText("Checking in")).toBeInTheDocument();
+  });
+});
+
+describe("the tutor's voice", () => {
+  const student = { environment: "vexcode-vr", studentId: "S01", classCode: "" };
+  const reply = {
+    session_id: "abc",
+    reply: { response_id: "r1", body: "Try it. Then run.", speech: ["Try it.", "Then run."] },
+  };
+
+  it("asks the server to start the speech, unless the tutor is muted", async () => {
+    sessionStorage.setItem("agent:student", JSON.stringify(student));
+    const calls = serve({
+      "GET /v1/environments": [200, { environments: [VEX], avatar: true, voice: false }],
+      "GET /avatar/build/build.json": [200, { version: "v1" }],
+      "GET /v1/vexcode-vr/students/S01": [200, signedIn()],
+      "POST /v1/vexcode-vr/students/S01/turns": [200, reply],
+    });
+    const user = userEvent.setup();
+    render(<App />);
+    expect(await screen.findByTitle("INVITE Agent tutor")).toHaveAttribute(
+      "src",
+      "/avatar/?framing=1",
+    );
+    await user.click(await screen.findByRole("button", { name: "Help" }));
+    await screen.findByText("Try it. Then run.");
+    expect(calls.filter((c) => c.path.endsWith("/turns")).at(-1).body.speak).toBe(true);
+
+    await user.click(screen.getByRole("button", { name: "Mute the tutor" }));
+    await user.click(screen.getByRole("button", { name: "Help" }));
+    await waitFor(() => expect(calls.filter((c) => c.path.endsWith("/turns"))).toHaveLength(2));
+    expect(calls.filter((c) => c.path.endsWith("/turns")).at(-1).body.speak).toBe(false);
+    expect(localStorage.getItem("agent:muted")).toBe("true");
+  });
+
+  it("shows no tutor when the site has one but no build is installed", async () => {
+    sessionStorage.setItem("agent:student", JSON.stringify(student));
+    serve({
+      "GET /v1/environments": [200, { environments: [VEX], avatar: true, voice: false }],
+      "GET /v1/vexcode-vr/students/S01": [200, signedIn()],
+    });
+    render(<App />);
+    await screen.findByRole("button", { name: "Help" });
+    expect(screen.queryByTitle("INVITE Agent tutor")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Mute the tutor" })).toBeNull();
+  });
+
+  it("asks a spoken question as the text the tutor heard", async () => {
+    sessionStorage.setItem("agent:student", JSON.stringify(student));
+    let recorder;
+    vi.stubGlobal(
+      "MediaRecorder",
+      class {
+        constructor() {
+          recorder = this;
+          this.state = "inactive";
+          this.mimeType = "audio/webm";
+        }
+        start() {
+          this.state = "recording";
+        }
+        stop() {
+          this.state = "inactive";
+          this.ondataavailable({ data: new Blob(["opus"]) });
+          this.onstop();
+        }
+      },
+    );
+    Object.defineProperty(navigator, "mediaDevices", {
+      configurable: true,
+      value: { getUserMedia: async () => ({ getTracks: () => [{ stop() {} }] }) },
+    });
+    const calls = serve({
+      "GET /v1/environments": [200, { environments: [VEX], avatar: false, voice: true }],
+      "GET /v1/vexcode-vr/students/S01": [200, signedIn()],
+      "POST /v1/vexcode-vr/students/S01/transcriptions": [200, { text: "where is the lab" }],
+      "POST /v1/vexcode-vr/students/S01/turns": [200, reply],
+    });
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(await screen.findByRole("button", { name: "Ask out loud" }));
+    await waitFor(() => expect(recorder.state).toBe("recording"));
+    await user.click(screen.getByRole("button", { name: /Stop and send/ }));
+    expect(await screen.findByText("where is the lab")).toBeInTheDocument();
+    expect(calls.find((c) => c.path.endsWith("/transcriptions")).form.get("audio")).toBeInstanceOf(
+      Blob,
+    );
+    expect(calls.find((c) => c.path.endsWith("/turns")).body.message).toBe("where is the lab");
+    delete navigator.mediaDevices;
   });
 });
