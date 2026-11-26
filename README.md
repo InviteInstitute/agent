@@ -5,15 +5,20 @@ frames the student's coding environment and floats a chat on top of it. When a s
 help, or looks stuck, the agent reads what the student's code and robot are actually doing and
 gives one short, specific hint.
 
-It works in two environments, and each site picks which ones it serves.
+It works in three environments, and each site picks which ones it serves.
 
 | Environment | What the page frames | Where the student's logs come from |
 | --- | --- | --- |
 | VEXcode VR | `research-vr.vex.com` | the Invite Institute Hub |
 | ZANY | `vr.inviteai.org`, with the student's class and ID in the link | ATLAS-invite's log store |
+| ZANY in an ATLAS study | `zany.inviteai.org/play/` for the student's study session | ATLAS-invite's log store |
 
-Both log in VEXcode VR's format, so the measurements, the pedagogy and the chat are the same in
-both. Only the log source differs.
+All of them log in VEXcode VR's format, so the measurements, the pedagogy and the chat are the
+same in each. Only the log source differs.
+
+In an ATLAS study, a researcher ticks "With the INVITE Agent" on a student, and ATLAS frames
+`agent.inviteai.org/study` for that student with a signed ticket in the link. Nobody signs in
+there. The ticket says who the student is and which session to frame.
 
 ## How a reply is made
 
@@ -69,7 +74,8 @@ here as `ubuntu`. It pulls, rolls Postgres and the API with `docker compose -f c
 `avatar/`, and passes `/v1` to the API on 127.0.0.1:8005.
 
 The checkout's `.env` holds the site's settings and secrets. The Lumen key comes from
-`/etc/lumen.env` and ZANY's read-only login from `/etc/agent/zany.env`. The Unity build of the
+`/etc/lumen.env` and ZANY's read-only login from `/etc/agent/zany.env`. `AGENT_STUDY_SECRET` in
+`.env` checks ATLAS's study tickets, and ATLAS holds the same secret as `agent_study_secret`. The Unity build of the
 tutor is installed by hand with `avatar/install.sh` and is kept across deploys.
 
 ## Layout

@@ -53,8 +53,23 @@ the server makes the key, so the client never handles keys.
 The agent page frames `vr.inviteai.org/?class=…&student=…` with the IDs the student signed in
 with, so the agent and ZANY always agree on who the student is. ZANY sends those logs to
 ATLAS-invite as link records (`link_record` in its log store), and the agent reads them there
-the way lm-dashboard reads study records. `zany.inviteai.org`, the ATLAS study version, refuses
-to be framed (`X-Frame-Options: SAMEORIGIN`), so studies are left for later.
+the way lm-dashboard reads study records.
+
+## ZANY in an ATLAS study
+
+A researcher ticks "With the INVITE Agent" on a student in ATLAS. While ATLAS may keep that
+student's data, its study page frames `agent.inviteai.org/study#ticket=…` instead of plain ZANY.
+The ticket is signed with a secret only ATLAS and the agent hold (`agent/study.py`). It names
+the study, the study code, the participant ID and the study session, and it lasts 12 hours.
+
+The page sends the ticket with every call (`X-Study-Ticket`, or `?ticket=` on the check-in
+stream). The server takes the student from it and never from the link, and a valid ticket also
+passes the Turnstile gate. The `zany-study` environment frames
+`zany.inviteai.org/play/?session=…` and reads that student's rows from `log_record`, keyed like
+ZANY's link students but kept apart from them. When ATLAS deletes a student's rows it sends
+`zany_forgotten`, and the agent deletes everything it keeps about them, the chat too.
+
+The design is in `docs/superpowers/specs/2026-11-26-atlas-study-agent-design.md`.
 
 ## Slices
 
