@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App.jsx";
@@ -227,5 +227,47 @@ describe("pieces", () => {
       width: 488,
       height: 688,
     });
+  });
+});
+
+describe("check-ins", () => {
+  it("shows a check-in the moment the server sends it, once", async () => {
+    const sources = [];
+    vi.stubGlobal(
+      "EventSource",
+      class {
+        constructor(url) {
+          this.url = String(url);
+          this.listeners = {};
+          sources.push(this);
+        }
+        addEventListener(name, listener) {
+          this.listeners[name] = listener;
+        }
+        close() {
+          this.closed = true;
+        }
+        send(data) {
+          this.listeners.checkin({ data: JSON.stringify(data) });
+        }
+      },
+    );
+    sessionStorage.setItem(
+      "agent:student",
+      JSON.stringify({ environment: "zany", studentId: "S01", classCode: "room-4" }),
+    );
+    serve({
+      "GET /v1/environments": [200, { environments: [VEX, ZANY], avatar: false }],
+      "GET /v1/zany/students/S01": [200, signedIn({ environment: "zany", class_code: "room-4" })],
+    });
+    render(<App />);
+    await screen.findByText(/Ask me about your project/);
+    expect(sources[0].url).toContain("/v1/zany/students/S01/stream?class_code=room-4");
+
+    const checkin = { id: 7, body: "Still there?", response_id: "r7", trigger_type: "inactive" };
+    act(() => sources[0].send(checkin));
+    act(() => sources[0].send(checkin));
+    expect(await screen.findAllByText("Still there?")).toHaveLength(1);
+    expect(screen.getByText("Checking in")).toBeInTheDocument();
   });
 });

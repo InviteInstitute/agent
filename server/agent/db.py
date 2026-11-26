@@ -151,7 +151,7 @@ def students_held(environment: str) -> set[tuple[str | None, str]]:
 
 
 # Tables keyed by (environment, student_key) that go when a student is forgotten.
-FORGOTTEN_WITH_STUDENT = ("messages", "agent_settings")
+FORGOTTEN_WITH_STUDENT = ("triggers", "messages", "agent_settings")
 
 
 def forget_students(environment: str, class_code: str | None, student_id: str | None) -> int:
@@ -281,6 +281,101 @@ def insert_rating(message_id: int, thumb: str, comment: str | None) -> None:
             "INSERT INTO ratings (message_id, thumb, comment) VALUES (%s, %s, %s)",
             (message_id, thumb, comment),
         )
+
+
+def latest_proactive_id(environment: str, student_key: str) -> int:
+    with pool().connection() as conn:
+        return conn.execute(
+            "SELECT COALESCE(MAX(id), 0) FROM messages"
+            " WHERE environment = %s AND student_key = %s AND origin = 'proactive'",
+            (environment, student_key),
+        ).fetchone()[0]
+
+
+def proactive_after(environment: str, student_key: str, after_id: int) -> list[dict]:
+    """A student's check-ins newer than `after_id`, oldest first."""
+    with pool().connection() as conn, conn.cursor(row_factory=dict_row) as cur:
+        cur.execute(
+            """
+            SELECT id, body, response_id, trigger_type, created_at FROM messages
+            WHERE environment = %s AND student_key = %s AND origin = 'proactive' AND id > %s
+            ORDER BY id
+            """,
+            (environment, student_key, after_id),
+        )
+        return cur.fetchall()
+
+
+# --- triggers ---
+
+
+def recent_students(environment: str, hours: float) -> list[str]:
+    """Every student with an event in the last `hours`."""
+    with pool().connection() as conn:
+        rows = conn.execute(
+            "SELECT DISTINCT student_key FROM events"
+            " WHERE environment = %s AND event_ts > now() - make_interval(secs => %s)",
+            (environment, hours * 3600),
+        ).fetchall()
+        return [row[0] for row in rows]
+
+
+def insert_trigger(
+    environment: str,
+    student_key: str,
+    session_id: str,
+    trigger_type: str,
+    run_index: int,
+    detail: dict | None,
+    fired_at: datetime,
+) -> int | None:
+    """Keep a detected trigger, fired at the time its detection used. Returns its id, or None
+    when it was already kept."""
+    with pool().connection() as conn:
+        row = conn.execute(
+            """
+            INSERT INTO triggers (environment, student_key, session_id, trigger_type, run_index,
+                detail, fired_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (environment, student_key, session_id, trigger_type, run_index) DO NOTHING
+            RETURNING id
+            """,
+            (
+                environment,
+                student_key,
+                session_id,
+                trigger_type,
+                run_index,
+                Jsonb(detail),
+                fired_at,
+            ),
+        ).fetchone()
+        return row[0] if row else None
+
+
+def last_inactive_fire(environment: str, student_key: str, session_id: str):
+    """(run_index, fired_at) of the session's newest inactive trigger, or None."""
+    with pool().connection() as conn:
+        return conn.execute(
+            "SELECT run_index, fired_at FROM triggers WHERE environment = %s AND student_key = %s"
+            " AND session_id = %s AND trigger_type = 'inactive' ORDER BY fired_at DESC LIMIT 1",
+            (environment, student_key, session_id),
+        ).fetchone()
+
+
+def resolve_inactive(environment: str, student_key: str, session_id: str) -> None:
+    """Close a session's open inactive triggers: the student is active again."""
+    with pool().connection() as conn:
+        conn.execute(
+            "UPDATE triggers SET resolved_at = now() WHERE environment = %s AND student_key = %s"
+            " AND session_id = %s AND trigger_type = 'inactive' AND resolved_at IS NULL",
+            (environment, student_key, session_id),
+        )
+
+
+def link_trigger_message(trigger_id: int, message_id: int) -> None:
+    with pool().connection() as conn:
+        conn.execute("UPDATE triggers SET message_id = %s WHERE id = %s", (message_id, trigger_id))
 
 
 # --- research settings ---

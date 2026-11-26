@@ -122,7 +122,8 @@ CASTLE = Playground(
         "Level 2 adds a row of trees on the eastern border that stop the robot."
     ),
     blocks=BLOCKS,
-    aliases=("CastleCrasherPlus", "CasteCrasherPlus"),
+    log_name="CastleCrasherPlus",
+    aliases=("CasteCrasherPlus",),
     milestones=(
         Milestone(
             "push a piece of the castle into the water", lambda p: _number(p, "weight_cleared") > 0
@@ -151,7 +152,7 @@ CORAL_REEF = Playground(
         "the coral, and the Down Eye sees the channel as blue."
     ),
     blocks=BLOCKS,
-    aliases=("CoralReefRescue",),
+    log_name="CoralReefRescue",
     milestones=(
         Milestone("collect a piece of trash", lambda p: _number(p, "trash_collected") > 0),
         Milestone(
@@ -172,7 +173,7 @@ ART_CANVAS = Playground(
         "going for."
     ),
     blocks=BLOCKS,
-    aliases=("ArtCanvas",),
+    log_name="ArtCanvas",
 )
 
 

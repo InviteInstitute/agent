@@ -58,6 +58,22 @@ export const api = {
       body,
       query: studentQuery(student),
     }),
+  // The student's check-ins as they happen (server-sent events), or null where there is no
+  // EventSource. The browser reconnects on its own after a drop.
+  checkins: (student, onCheckin) => {
+    if (typeof EventSource === "undefined") return null;
+    const url = new URL(`/v1${studentPath(student)}/stream`, window.location.origin);
+    if (student.classCode) url.searchParams.set("class_code", student.classCode);
+    const source = new EventSource(url);
+    source.addEventListener("checkin", (event) => {
+      try {
+        onCheckin(JSON.parse(event.data));
+      } catch {
+        // A frame that is not JSON is skipped.
+      }
+    });
+    return source;
+  },
   saveSettings: (student, overrides) =>
     request(`${studentPath(student)}/settings`, {
       method: "PUT",

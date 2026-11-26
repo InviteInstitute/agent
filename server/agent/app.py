@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request, Response
 from pydantic import BaseModel
 
-from agent import db, environments, gate, llm
+from agent import checkins, db, environments, gate, llm
 from agent.api import router
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -24,6 +24,10 @@ async def lifespan(app: FastAPI):
         for env in served
         if env.watch
     ]
+    if checkins.enabled():
+        workers.append(
+            threading.Thread(target=checkins.run, args=(stop,), name="check-ins", daemon=True)
+        )
     for worker in workers:
         worker.start()
     yield
