@@ -66,6 +66,37 @@ def disabled_triggers() -> set[str]:
     return {name.strip() for name in config.text("TRIGGER_DISABLED").split(",") if name.strip()}
 
 
+# --- who has the page open ---
+# A check-in only goes to a student whose page is open, which the page's check-in stream shows.
+# Someone who closed the tab would otherwise get an inactive re-alert every RE_ALERT_SECONDS
+# until the recency window ran out, for nobody to read. Their triggers are still kept.
+# ponytail: counted in this process, which is the only one. A shared store if the API ever
+# runs several workers.
+_open_pages: dict[tuple[str, str], int] = {}
+_open_lock = threading.Lock()
+
+
+def page_opened(environment_id: str, student_key: str) -> None:
+    with _open_lock:
+        key = (environment_id, student_key)
+        _open_pages[key] = _open_pages.get(key, 0) + 1
+
+
+def page_closed(environment_id: str, student_key: str) -> None:
+    with _open_lock:
+        key = (environment_id, student_key)
+        left = _open_pages.get(key, 0) - 1
+        if left > 0:
+            _open_pages[key] = left
+        else:
+            _open_pages.pop(key, None)
+
+
+def page_open(environment_id: str, student_key: str) -> bool:
+    with _open_lock:
+        return (environment_id, student_key) in _open_pages
+
+
 # --- run distances, kept per session so a tick only reads what is new ---
 
 
@@ -168,8 +199,10 @@ def check_in(
     environment: Environment, student_key: str, session_id: str, events: list[Event], trigger: dict
 ) -> int | None:
     """Send the check-in for a new trigger. Returns the message id, or None when the agent
-    does not act on it (turned off, or a playground it does not know)."""
+    does not act on it (turned off, a playground it does not know, or nobody there to read it)."""
     if trigger["type"] in disabled_triggers() or trigger["type"] not in FEEDBACK_FOR_TRIGGER:
+        return None
+    if not page_open(environment.id, student_key):
         return None
     stretch = current_stretch(events)
     playground = environment.playground(stretch[-1].playground) if stretch else None

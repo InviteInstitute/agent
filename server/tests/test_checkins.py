@@ -24,6 +24,14 @@ def fresh_runs():
     checkins.forget_runs()
 
 
+@pytest.fixture(autouse=True)
+def page_open():
+    """The student has the page open, as the check-in tests assume unless they say otherwise."""
+    checkins.page_opened(ENV.id, KEY)
+    yield
+    checkins.page_closed(ENV.id, KEY)
+
+
 def keep_runs(count, *, start=0, playground="GO-Mars", workspace=WORKSPACE):
     """`count` runs of the same program, a minute apart, each with its projectEnd."""
     rows = []
@@ -175,3 +183,31 @@ def test_the_stream_sends_only_check_ins_made_after_it_opened(database, monkeypa
     payload = json.loads(events[0].split("data: ", 1)[1])
     assert payload["body"] == "new one" and payload["trigger_type"] == "explorer"
     assert payload["id"] > before
+
+
+def test_no_check_in_for_a_student_who_closed_the_page(database, fake_llm):
+    checkins.page_closed(ENV.id, KEY)
+    try:
+        last = keep_runs(1)
+        fake = fake_llm()
+        assert checkins.tick_student(ENV, KEY, now=last + timedelta(minutes=5)) == []
+        assert fake.prompts == []
+        with db.pool().connection() as conn:
+            kept = [row[0] for row in conn.execute("SELECT trigger_type FROM triggers")]
+        assert kept == ["inactive"]  # still kept for research, just not sent
+    finally:
+        checkins.page_opened(ENV.id, KEY)
+
+
+def test_an_open_stream_is_what_makes_a_student_present(database, monkeypatch):
+    monkeypatch.setattr(api, "STREAM_POLL_S", 0)
+    keep_runs(1)
+    who = api.Student(ENV, "listener", None, "listener")
+
+    async def listen():
+        async for _ in api.checkin_stream(who, FakeRequest(polls=1)):
+            assert checkins.page_open(ENV.id, "listener")
+
+    assert not checkins.page_open(ENV.id, "listener")
+    asyncio.run(listen())
+    assert not checkins.page_open(ENV.id, "listener")

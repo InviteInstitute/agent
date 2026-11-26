@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Upl
 from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 
-from agent import config, db, environments, gate, llm, speech
+from agent import checkins, config, db, environments, gate, llm, speech
 from agent.environments import Environment
 from agent.feedback import NO_EVENTS, Reply, answer_question
 from agent.pedagogy import PLACEHOLDERS, PROMPT_TEMPLATE
@@ -276,12 +276,17 @@ async def checkin_stream(who: Student, request: Request):
     an idle stream."""
     env_id = who.environment.id
     last = await asyncio.to_thread(db.latest_proactive_id, env_id, who.key)
-    while not await request.is_disconnected():
-        for row in await asyncio.to_thread(db.proactive_after, env_id, who.key, last):
-            last = row["id"]
-            yield checkin_event(row)
-        yield ": keep-alive\n\n"
-        await asyncio.sleep(STREAM_POLL_S)
+    # While this stream is open the student is there, so the daemon may check in with them.
+    checkins.page_opened(env_id, who.key)
+    try:
+        while not await request.is_disconnected():
+            for row in await asyncio.to_thread(db.proactive_after, env_id, who.key, last):
+                last = row["id"]
+                yield checkin_event(row)
+            yield ": keep-alive\n\n"
+            await asyncio.sleep(STREAM_POLL_S)
+    finally:
+        checkins.page_closed(env_id, who.key)
 
 
 @router.get("/{environment}/students/{student_id}/stream")
