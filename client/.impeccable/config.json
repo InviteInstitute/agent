@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "open sans",
+        "createdAt": "2026-11-26T08:00:16.419Z",
+        "reason": "User asked the agent page to emulate ZANY/VEXcode VR, and ZANY's src/style.css sets Open Sans"
+      }
+    ]
+  }
+}
