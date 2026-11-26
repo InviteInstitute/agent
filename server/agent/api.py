@@ -87,10 +87,13 @@ class SettingsRequest(BaseModel):
     overrides: Overrides | None = None
 
 
-def history(who: Student, session_id: str | None) -> list[dict]:
+Chat = Literal["student", "research"]
+
+
+def history(who: Student, session_id: str | None, chat: Chat) -> list[dict]:
     if not session_id:
         return []
-    rows = db.chat_messages(who.environment.id, who.key, session_id, "student", HISTORY_LIMIT)
+    rows = db.chat_messages(who.environment.id, who.key, session_id, chat, HISTORY_LIMIT)
     return [
         {
             "id": row["id"],
@@ -124,9 +127,9 @@ def list_environments() -> dict:
 
 
 @router.get("/{environment}/students/{student_id}")
-def sign_in(who: StudentDep) -> dict:
+def sign_in(who: StudentDep, chat: Chat = "student") -> dict:
     """What the page needs once a student signs in: the frame for them, and their current
-    session's chat so a reload picks up where it was."""
+    session's chat (or a researcher's chat) so a reload picks up where it was."""
     sync_student(who)
     session_id = db.latest_session(who.environment.id, who.key)
     events = db.session_events(who.environment.id, who.key, session_id) if session_id else []
@@ -138,7 +141,7 @@ def sign_in(who: StudentDep) -> dict:
         "frame": who.environment.frame(who.student_id, who.class_code),
         "session_id": session_id,
         "playground": stretch[-1].playground if stretch else None,
-        "messages": history(who, session_id),
+        "messages": history(who, session_id, chat),
     }
 
 
