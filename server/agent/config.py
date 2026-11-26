@@ -35,11 +35,6 @@ def navigator_model() -> str:
     return text("NAVIGATOR_MODEL", "qwen3.8-27b")
 
 
-def avatar_enabled() -> bool:
-    """Whether this deployment shows the 3D tutor and speaks its replies."""
-    return flag("AVATAR_ENABLED")
-
-
 def student_recency_hours() -> float:
     """How far back a fresh database's first log sync reaches, and which students the
     check-in daemon looks at: those with an event in this many hours."""

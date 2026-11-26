@@ -252,7 +252,11 @@ ENVIRONMENT = Environment(
     tool="VEXcode VR, a block-based programming tool for middle school students",
     needs_class_code=False,
     playgrounds=(GO_MARS,),
-    frame=lambda student_id, class_code: "https://research-vr.vex.com/",
+    # VEX's research build. VEXCODE_VR_LINK can name a class's direct link instead (from
+    # vradmin.vex.com, Copy Direct Link), which signs students in to that class.
+    frame=lambda student_id, class_code: config.text(
+        "VEXCODE_VR_LINK", "https://research-vr.vex.com/"
+    ),
     student_key=lambda student_id, class_code: fold(student_id),
     sync=sync,
 )

@@ -114,8 +114,20 @@ pre {
   white-space: nowrap;
 }
 
+/* Only the student's tag gives way when the header is tight. */
+.agent-panel__header > * {
+  flex-shrink: 0;
+}
+
 .agent-panel__header .cds--tag {
+  flex-shrink: 1;
+  min-width: 2.5rem;
   max-width: 10rem;
+}
+
+/* Carbon keeps room on a button's right for an icon. Help has none, so it gives that back. */
+.agent-panel__header .cds--btn--primary {
+  padding-inline-end: 1rem;
 }
 
 .agent-panel__spacer {
@@ -431,6 +443,8 @@ pre {
   height: 100%;
   border: 0;
   background: transparent;
+  /* Matches the avatar page, so the browser paints no backdrop behind the character. */
+  color-scheme: light;
 }
 
 @media (prefers-reduced-motion: reduce) {

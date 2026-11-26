@@ -7,6 +7,11 @@
     <style>
       /* The agent page embeds this transparent over the coding environment, so only the
          character shows (the build's TransparentBackground.jslib clears the canvas). */
+      /* Light, like the agent page. A page whose colour scheme differs from its embedder's gets an
+         opaque backdrop from the browser, which would put a box behind the character. */
+      :root {
+        color-scheme: light;
+      }
       html,
       body {
         margin: 0;
@@ -49,6 +54,13 @@
           unity.SendMessage(CHATLLM, "Speak", JSON.stringify({ text: data.text, audios }));
         }
         if (data.type === "hush") unity.SendMessage(CHATLLM, "Hush");
+        // Hidden, the tutor stops rendering altogether, so it costs the student's computer
+        // nothing. Shown again, it carries on where it was.
+        if (data.type === "pause") {
+          unity.SendMessage(CHATLLM, "Hush");
+          unity.Module?.pauseMainLoop?.();
+        }
+        if (data.type === "resume") unity.Module?.resumeMainLoop?.();
         if (data.type === "framing" && data.framing) {
           unity.SendMessage(CHATLLM, "SetFraming", String(data.framing));
         }

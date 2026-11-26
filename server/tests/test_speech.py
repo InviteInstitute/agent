@@ -25,7 +25,6 @@ def fresh_clips():
 
 @pytest.fixture
 def client(database, monkeypatch):
-    monkeypatch.setenv("AVATAR_ENABLED", "true")
     monkeypatch.setattr(speech, "warm", lambda: None)
     object.__setattr__(vexcode_vr.ENVIRONMENT, "sync", lambda *args: 0)
     with TestClient(app) as test_client:
@@ -88,13 +87,11 @@ def test_a_spoken_reply_comes_with_its_clips_started(client, fake_llm, monkeypat
     assert prepared == reply["speech"]
 
 
-def test_tts_serves_a_clip_and_only_with_the_avatar(client, monkeypatch):
+def test_tts_serves_a_clip(client, monkeypatch):
     monkeypatch.setattr(speech, "audio", lambda text: b"RIFF" + text.encode())
     response = client.get("/v1/tts", params={"text": "Use the `turn` block."})
     assert response.headers["content-type"] == "audio/wav"
     assert response.content == b"RIFFUse the turn block."
-    monkeypatch.setenv("AVATAR_ENABLED", "false")
-    assert client.get("/v1/tts", params={"text": "hi"}).status_code == 404
     assert client.get("/v1/tts", params={"text": "x" * 501}).status_code == 422
 
 

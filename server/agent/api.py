@@ -127,7 +127,6 @@ def list_environments() -> dict:
             }
             for env in environments.enabled()
         ],
-        "avatar": config.avatar_enabled(),
         "voice": speech.voice_on(),
     }
 
@@ -223,7 +222,7 @@ def take_turn(who: StudentDep, body: TurnRequest, request: Request) -> dict:
         context=reply.context,
     )
     said = None
-    if body.speak and config.avatar_enabled():
+    if body.speak:
         said = speech.chunks(reply.body)
         speech.prepare(said)
     log.info(
@@ -264,7 +263,7 @@ def checkin_event(row: dict) -> str:
         "response_id": str(row["response_id"]) if row["response_id"] else None,
         "trigger_type": row["trigger_type"],
         "created_at": row["created_at"].isoformat(),
-        "speech": speech.chunks(row["body"]) if config.avatar_enabled() else None,
+        "speech": speech.chunks(row["body"]),
     }
     return f"event: checkin\ndata: {json.dumps(payload)}\n\n"
 
@@ -360,8 +359,6 @@ def transcribe(who: StudentDep, request: Request, audio: Annotated[UploadFile, F
 def tts(text: str = Query(min_length=1, max_length=500)) -> Response:
     """One spoken line as WAV, for the avatar to play and lip-sync. A whole clip, since Unity
     plays a clip only once it has all of it."""
-    if not config.avatar_enabled():
-        raise HTTPException(404, "This site has no avatar.")
     try:
         clip = speech.audio(speech.spoken(text))
     except Exception as error:

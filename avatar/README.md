@@ -2,7 +2,8 @@
 
 `index.html` hosts the Unity WebGL tutor. The agent page embeds it transparent beside the chat
 (`client/src/Avatar.jsx`) and tells it over `postMessage` what to say. It fetches each spoken
-sentence from the API's `/v1/tts`, and a site only offers it with `AVATAR_ENABLED=true`.
+sentence from the API's `/v1/tts`. Students can hide it with a button in the chat's header, and
+while it is hidden the page pauses Unity's main loop, so it stops rendering.
 
 The Unity build is not in git. Build the tutor's Unity project for WebGL, then install the
 output here:

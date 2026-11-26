@@ -15,7 +15,8 @@ written fresh, and adds ZANY as a second environment.
   replies stay in a research chat apart from what students see.
 - Ratings and notes on replies.
 - The Turnstile gate and the token budgets per browser session and per day.
-- The 3D tutor with spoken replies and spoken questions, behind `AVATAR_ENABLED`.
+- The 3D tutor with spoken replies and spoken questions. It shows wherever its Unity build is
+  installed, and a student can hide it, which pauses it.
 
 ## What changed
 

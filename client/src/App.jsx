@@ -10,9 +10,10 @@ import {
 } from "@carbon/react";
 import {
   Chat as ChatIcon,
-  Help,
   Logout,
   Minimize,
+  View,
+  ViewOff,
   VolumeMute,
   VolumeUp,
 } from "@carbon/icons-react";
@@ -27,6 +28,7 @@ import VoiceButton, { canRecord } from "./VoiceButton.jsx";
 const STUDENT_KEY = "agent:student";
 const SETTINGS_KEY = "agent:settings";
 const MUTED_KEY = "agent:muted";
+const TUTOR_KEY = "agent:tutor";
 const DELAYED = "The agent ran into a delay. Try asking again in a moment.";
 
 // A message as the server keeps it, the way the chat shows it.
@@ -61,9 +63,12 @@ export default function App() {
   const [seen, setSeen] = useState(0);
   const [moving, setMoving] = useState(false);
   const [panelRect, setPanelRect] = useState(null);
-  // The 3D tutor, when the site has it and a build is installed. Its voice is a choice per
-  // browser, so a quiet classroom stays quiet.
+  // The 3D tutor, once its Unity build is installed. Showing it and its voice are choices per
+  // browser, so a quiet classroom stays quiet and a slow computer can hide it.
   const [avatar, setAvatar] = useState(false);
+  const [tutorShown, setTutorShown] = useState(
+    () => readStored(localStorage, TUTOR_KEY, true) !== false,
+  );
   const [muted, setMuted] = useState(() => readStored(localStorage, MUTED_KEY, false) === true);
   const [hush, setHush] = useState(0);
   const [voiceError, setVoiceError] = useState("");
@@ -80,9 +85,10 @@ export default function App() {
 
   useEffect(() => writeStored(localStorage, SETTINGS_KEY, settings), [settings]);
   useEffect(() => writeStored(localStorage, MUTED_KEY, muted), [muted]);
+  useEffect(() => writeStored(localStorage, TUTOR_KEY, tutorShown), [tutorShown]);
   useEffect(() => {
-    if (site?.avatar) avatarInstalled().then(setAvatar);
-  }, [site]);
+    avatarInstalled().then(setAvatar);
+  }, []);
 
   const loadConfig = useCallback(() => {
     setConfigError("");
@@ -160,7 +166,11 @@ export default function App() {
     setMessages((list) => [...list, studentTurn, pending]);
     setBusy(true);
     try {
-      const data = await api.turn(student, { message: text, overrides, speak: avatar && !muted });
+      const data = await api.turn(student, {
+        message: text,
+        overrides,
+        speak: avatar && tutorShown && !muted,
+      });
       const reply = data.reply;
       setMessages((list) =>
         list.map((m) =>
@@ -269,10 +279,22 @@ export default function App() {
       <span className="agent-panel__spacer" />
       {signedIn ? (
         <>
-          <Button size="sm" renderIcon={Help} onClick={() => ask("")} disabled={busy}>
+          <Button size="sm" onClick={() => ask("")} disabled={busy}>
             Help
           </Button>
           {avatar ? (
+            <IconButton
+              kind="ghost"
+              size="sm"
+              label={tutorShown ? "Hide the tutor" : "Show the tutor"}
+              align="bottom"
+              aria-pressed={!tutorShown}
+              onClick={() => setTutorShown((shown) => !shown)}
+            >
+              {tutorShown ? <View /> : <ViewOff />}
+            </IconButton>
+          ) : null}
+          {avatar && tutorShown ? (
             <IconButton
               kind="ghost"
               size="sm"
@@ -331,7 +353,7 @@ export default function App() {
       {avatar ? (
         <Avatar
           panel={open ? panelRect : null}
-          visible={signedIn}
+          visible={signedIn && tutorShown}
           utterance={signedIn ? utterance : null}
           muted={muted}
           hush={hush}
