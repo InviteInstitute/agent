@@ -2,13 +2,10 @@
 a database beside the agent's (ZANY_STORE_URL, else zany_store_test next to TEST_DATABASE_URL)."""
 
 import json
-import os
 import threading
 import uuid
 from datetime import UTC, datetime, timedelta
 
-import psycopg
-import pytest
 from fastapi.testclient import TestClient
 
 from agent import db
@@ -17,33 +14,7 @@ from agent.environments import zany
 from agent.feedback import wrong_playground
 from agent.situation import describe
 
-# ATLAS-invite's link_record, as atlas/zany_logs.py makes it.
-STORE_SCHEMA = """
-DROP TABLE IF EXISTS link_record;
-CREATE TABLE link_record (
-    student_id text NOT NULL, page_session text NOT NULL, id bigint NOT NULL,
-    class_code text NOT NULL, event_type text NOT NULL, record jsonb NOT NULL,
-    stored_at timestamptz NOT NULL, seq bigint GENERATED ALWAYS AS IDENTITY,
-    PRIMARY KEY (student_id, page_session, id)
-);
-"""
 START = datetime(2026, 11, 20, 14, 0, tzinfo=UTC)
-
-
-@pytest.fixture
-def store(database, monkeypatch):
-    base = os.environ["TEST_DATABASE_URL"]
-    url = os.environ.get("ZANY_STORE_URL") or base.rsplit("/", 1)[0] + "/zany_store_test"
-    with psycopg.connect(base, autocommit=True) as conn:
-        if not conn.execute(
-            "SELECT 1 FROM pg_database WHERE datname = 'zany_store_test'"
-        ).fetchone():
-            conn.execute("CREATE DATABASE zany_store_test")
-    monkeypatch.setenv("ZANY_LOG_DSN", url)
-    monkeypatch.setenv("ENVIRONMENTS", "vexcode-vr,zany")
-    with psycopg.connect(url, autocommit=True) as conn:
-        conn.execute(STORE_SCHEMA)
-        yield conn
 
 
 def record(n, *, student="S01", klass="room-4", session=None, event="blockMoved", **raw):

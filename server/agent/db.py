@@ -197,6 +197,26 @@ def forget_students(environment: str, class_code: str | None, student_id: str | 
         return deleted
 
 
+def forget_student_key(environment: str, key: str) -> int:
+    """Delete everything the agent keeps about one student: their events, the chat, its ratings
+    and the research settings. Token spending stays counted, without the student. Returns how
+    many events were deleted."""
+    with pool().connection() as conn, conn.transaction():
+        deleted = conn.execute(
+            "DELETE FROM events WHERE environment = %s AND student_key = %s", (environment, key)
+        ).rowcount
+        for table in FORGOTTEN_WITH_STUDENT:
+            conn.execute(
+                f"DELETE FROM {table} WHERE environment = %s AND student_key = %s",
+                (environment, key),
+            )
+        conn.execute(
+            "UPDATE llm_usage SET student_key = NULL WHERE environment = %s AND student_key = %s",
+            (environment, key),
+        )
+        return deleted
+
+
 # --- chat ---
 
 

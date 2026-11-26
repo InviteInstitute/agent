@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 from types import SimpleNamespace
 
+import psycopg
 import pytest
 
 from agent import db, environments, llm
@@ -45,6 +46,36 @@ def database(monkeypatch):
     db.migrate()
     yield db
     db.close()
+
+
+# ATLAS-invite's link_record, as atlas/zany_logs.py makes it.
+STORE_SCHEMA = """
+DROP TABLE IF EXISTS link_record;
+CREATE TABLE link_record (
+    student_id text NOT NULL, page_session text NOT NULL, id bigint NOT NULL,
+    class_code text NOT NULL, event_type text NOT NULL, record jsonb NOT NULL,
+    stored_at timestamptz NOT NULL, seq bigint GENERATED ALWAYS AS IDENTITY,
+    PRIMARY KEY (student_id, page_session, id)
+);
+"""
+
+
+@pytest.fixture
+def store(database, monkeypatch):
+    """A stand-in for ATLAS-invite's log store, in a database beside the agent's
+    (ZANY_STORE_URL, else zany_store_test next to TEST_DATABASE_URL)."""
+    base = os.environ["TEST_DATABASE_URL"]
+    url = os.environ.get("ZANY_STORE_URL") or base.rsplit("/", 1)[0] + "/zany_store_test"
+    with psycopg.connect(base, autocommit=True) as conn:
+        if not conn.execute(
+            "SELECT 1 FROM pg_database WHERE datname = 'zany_store_test'"
+        ).fetchone():
+            conn.execute("CREATE DATABASE zany_store_test")
+    monkeypatch.setenv("ZANY_LOG_DSN", url)
+    monkeypatch.setenv("ENVIRONMENTS", "vexcode-vr,zany")
+    with psycopg.connect(url, autocommit=True) as conn:
+        conn.execute(STORE_SCHEMA)
+        yield conn
 
 
 def records(name: str) -> list[dict]:

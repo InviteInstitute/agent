@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import logging
 import threading
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from urllib.parse import urlencode
 
@@ -184,10 +185,45 @@ def _store() -> psycopg.Connection:
     return psycopg.connect(dsn, autocommit=True)
 
 
-def sync(student_id: str | None = None, class_code: str | None = None) -> int:
-    """Read new link records: everyone's since the cursor (and move it, a page at a time, since
+@dataclass(frozen=True)
+class Store:
+    """Where in ATLAS's log store an environment's students are: the table, the SQL for a
+    row's class code and student ID, the agent's cursor, and the notice ATLAS sends with the
+    class code and student ID under `notice_keys` when it deletes rows."""
+
+    environment: str
+    table: str
+    class_code: str
+    student_id: str
+    source: str
+    channel: str
+    notice_keys: tuple[str, str]
+
+
+# Records from a link to vr.inviteai.org, keyed by the IDs typed in it.
+LINK = Store(
+    "zany", "link_record", "class_code", "student_id", SOURCE, FORGOTTEN, ("class_code", "student")
+)
+# Records from an ATLAS study, which ZANY logs under the study code and the participant ID.
+STUDY = Store(
+    "zany-study",
+    "log_record",
+    "record->>'classCode'",
+    "record->>'studentID'",
+    "atlas-study",
+    "zany_forgotten",
+    ("code", "participant"),
+)
+
+
+def _environment(store: Store) -> Environment:
+    return ENVIRONMENT if store is LINK else STUDY_ENVIRONMENT
+
+
+def read_store(store: Store, student_id: str | None = None, class_code: str | None = None) -> int:
+    """Read new records: everyone's since the cursor (and move it, a page at a time, since
     pages come oldest first), or one student's (and leave it)."""
-    position = db.cursor(SOURCE)
+    position = db.cursor(store.source)
     if position:
         since = parse_time(position["at"]) - OVERLAP
     elif student_id is None:
@@ -199,17 +235,18 @@ def sync(student_id: str | None = None, class_code: str | None = None) -> int:
         conditions.append("stored_at >= %s")
         args.append(since)
     if student_id is not None:
-        conditions.append("class_code = %s AND student_id = %s")
+        conditions.append(f"{store.class_code} = %s AND {store.student_id} = %s")
         args += [class_code or "", student_id]
 
+    environment = _environment(store)
     new = 0
     after: tuple[datetime, int] | None = None
-    with _store() as store:
+    with _store() as conn:
         while True:
             page = conditions + (["(stored_at, seq) > (%s, %s)"] if after else [])
             page_where = " AND ".join(page) or "true"
-            rows = store.execute(
-                f"SELECT seq, stored_at, record FROM link_record WHERE {page_where}"
+            rows = conn.execute(
+                f"SELECT seq, stored_at, record FROM {store.table} WHERE {page_where}"
                 " ORDER BY stored_at, seq LIMIT %s",
                 [*args, *(after or ()), PAGE],
             ).fetchall()
@@ -217,16 +254,24 @@ def sync(student_id: str | None = None, class_code: str | None = None) -> int:
                 (record if isinstance(record, dict) else json.loads(record), str(seq))
                 for seq, _, record in rows
             ]
-            parsed, skipped = parse_records(pairs, ENVIRONMENT)
+            parsed, skipped = parse_records(pairs, environment)
             if skipped:
-                log.info("skipped ZANY link records: %s", skipped)
+                log.info("skipped ZANY %s rows: %s", store.table, skipped)
             new += db.insert_events(parsed)
             if rows:
                 after = (rows[-1][1], rows[-1][0])
                 if student_id is None:
-                    db.save_cursor(SOURCE, *after)
+                    db.save_cursor(store.source, *after)
             if len(rows) < PAGE:
                 return new
+
+
+def sync(student_id: str | None = None, class_code: str | None = None) -> int:
+    return read_store(LINK, student_id, class_code)
+
+
+def sync_study(student_id: str | None = None, class_code: str | None = None) -> int:
+    return read_store(STUDY, student_id, class_code)
 
 
 def forget(class_code: str | None, student_id: str | None) -> int:
@@ -235,23 +280,40 @@ def forget(class_code: str | None, student_id: str | None) -> int:
     return db.forget_students(ENVIRONMENT.id, class_code, student_id)
 
 
-def reconcile() -> int:
-    """Forget every student the agent holds whose link records are all gone from ATLAS."""
-    with _store() as store:
+def forget_study(class_code: str | None, student_id: str | None) -> int:
+    """Delete everything the agent keeps about a study student whose records ATLAS deleted,
+    the chat too, even when it has no events. Returns how many events went."""
+    if not class_code or not student_id:
+        return 0
+    key = STUDY_ENVIRONMENT.student_key(student_id, class_code)
+    return db.forget_student_key(STUDY.environment, key)
+
+
+def _forget(store: Store, class_code: str | None, student_id: str | None) -> int:
+    return (forget if store is LINK else forget_study)(class_code, student_id)
+
+
+def reconcile_store(store: Store) -> int:
+    """Forget every student the agent holds whose records are all gone from ATLAS."""
+    with _store() as conn:
         kept = {
             (class_code, student_id)
-            for class_code, student_id in store.execute(
-                "SELECT DISTINCT class_code, student_id FROM link_record"
+            for class_code, student_id in conn.execute(
+                f"SELECT DISTINCT {store.class_code}, {store.student_id} FROM {store.table}"
             )
         }
     return sum(
-        forget(class_code, student_id)
-        for class_code, student_id in db.students_held(ENVIRONMENT.id)
+        _forget(store, class_code, student_id)
+        for class_code, student_id in db.students_held(store.environment)
         if (class_code or "", student_id) not in kept
     )
 
 
-def watch(stop: threading.Event) -> None:
+def reconcile() -> int:
+    return reconcile_store(LINK)
+
+
+def watch_store(store: Store, stop: threading.Event) -> None:
     """Listen for ATLAS's deletions until `stop` is set, checking everything once an hour."""
     if not config.text("ZANY_LOG_DSN"):
         log.warning("ZANY_LOG_DSN is not set, so ZANY's logs cannot be read")
@@ -259,21 +321,30 @@ def watch(stop: threading.Event) -> None:
     last_check = 0.0
     while not stop.is_set():
         try:
-            with _store() as store:
-                store.execute(f"LISTEN {FORGOTTEN}")
+            with _store() as conn:
+                conn.execute(f"LISTEN {store.channel}")
                 while not stop.is_set():
                     now = datetime.now(UTC).timestamp()
                     if now - last_check >= RECONCILE_EVERY_S:
                         last_check = now
-                        if gone := reconcile():
+                        if gone := reconcile_store(store):
                             log.info("forgot %d ZANY events deleted from ATLAS", gone)
-                    for notice in store.notifies(timeout=5.0, stop_after=1):
+                    for notice in conn.notifies(timeout=5.0, stop_after=1):
                         who = json.loads(notice.payload or "{}")
-                        gone = forget(who.get("class_code"), who.get("student"))
-                        log.info("ATLAS deleted link records, forgot %d events", gone)
+                        klass, student = store.notice_keys
+                        gone = _forget(store, who.get(klass), who.get(student))
+                        log.info("ATLAS deleted %s rows, forgot %d events", store.table, gone)
         except Exception:
             log.warning("lost the ZANY log store, retrying in 30 s", exc_info=True)
             stop.wait(30)
+
+
+def watch(stop: threading.Event) -> None:
+    watch_store(LINK, stop)
+
+
+def watch_study(stop: threading.Event) -> None:
+    watch_store(STUDY, stop)
 
 
 def frame(student_id: str | None, class_code: str | None) -> str | None:
@@ -284,6 +355,10 @@ def frame(student_id: str | None, class_code: str | None) -> str | None:
     return f"{FRAME_URL}?{urlencode({'class': class_code, 'student': student_id})}"
 
 
+def student_key(student_id: str, class_code: str | None) -> str:
+    return f"{fold(class_code)}:{fold(student_id)}"
+
+
 ENVIRONMENT = Environment(
     id="zany",
     name="ZANY",
@@ -291,7 +366,22 @@ ENVIRONMENT = Environment(
     needs_class_code=True,
     playgrounds=(CASTLE, CORAL_REEF, ART_CANVAS),
     frame=frame,
-    student_key=lambda student_id, class_code: f"{fold(class_code)}:{fold(student_id)}",
+    student_key=student_key,
     sync=sync,
     watch=watch,
+)
+
+# ZANY inside an ATLAS study, for a student a researcher gave the agent. ATLAS's ticket says
+# who the student is and which session to frame (agent/study.py), so nobody signs in here.
+STUDY_ENVIRONMENT = Environment(
+    id="zany-study",
+    name="ZANY",
+    tool=ENVIRONMENT.tool,
+    needs_class_code=True,
+    playgrounds=ENVIRONMENT.playgrounds,
+    frame=lambda student_id, class_code: None,
+    student_key=student_key,
+    sync=sync_study,
+    watch=watch_study,
+    study=True,
 )
