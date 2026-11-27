@@ -10,6 +10,9 @@ services:
     command: sh -c "python -m agent migrate && exec uvicorn agent.app:app --host 0.0.0.0 --port 8000 --reload"
     environment:
       TURNSTILE: "off"
+    # So OPENAI_BASE_URL can reach an Ollama on this machine at host.docker.internal.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./server/agent:/app/agent
       - ./server/migrations:/app/migrations

@@ -5,6 +5,8 @@ frames the student's coding environment and floats a chat on top of it. When a s
 help, or looks stuck, the agent reads what the student's code and robot are actually doing and
 gives one short, specific hint.
 
+The docs are at [docs.inviteai.org/agent](https://docs.inviteai.org/agent/), built from `docs/`.
+
 It works in three environments, and each site picks which ones it serves.
 
 | Environment | What the page frames | Where the student's logs come from |
@@ -62,8 +64,8 @@ curl -s -X POST localhost:8005/v1/vexcode-vr/students/fixture_01_1/turns \
   -H 'content-type: application/json' -d '{"message": "why does my robot not move?"}'
 ```
 
-`make test` runs the tests, `make lint` checks the code. The design and what is still to come
-are in [docs/design.md](docs/design.md).
+`make test` runs the tests, `make lint` checks the code. [Development](docs/guides/development.md)
+has the rest, and [docs/design.md](docs/design.md) has the design notes.
 
 ## On the INVITE server
 
