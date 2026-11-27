@@ -23,6 +23,14 @@ main() {
     echo "scripts/deploy.sh changed in this pull, running the new one"
     exec "$0" "$@"
   fi
+  # The docs workflow pushes a docs-only commit after most merges. Neither the image nor the
+  # client holds the docs, so rolling the stack for it would only restart the API under the
+  # students. A run that pulled nothing (by hand, or the rerun above) still deploys.
+  if [ "$before" != "$(git rev-parse HEAD)" ] && git diff --quiet "$before" HEAD -- . \
+    ':(exclude)docs' ':(exclude)README.md' ':(exclude)zensical.toml' ':(exclude).github'; then
+    echo "Only the docs changed, so the running stack stays as it is."
+    exit 0
+  fi
   git submodule update --init --recursive
 
   docker compose -f compose.yml up -d --build --remove-orphans

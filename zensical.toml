@@ -1,0 +1,59 @@
+# The INVITE Agent's docs, published as a section of docs.inviteai.org.
+#
+# InviteInstitute/docs builds that site with its own theme, and reads the nav below for this
+# section. This file is for checking the pages here:
+#
+#   zensical serve            # http://localhost:4000, reloads as you edit
+#   zensical build --strict   # what the docs bot runs; fails on a broken link or anchor
+#
+# docs/superpowers/ holds design specs and plans for the team, kept out of the site.
+
+[project]
+site_name = "INVITE Agent"
+site_description = "A tutor that sits on top of a student's block-based coding space and gives short hints grounded in what their robot actually did."
+site_url = "https://docs.inviteai.org/agent/"
+docs_dir = "docs"
+dev_addr = "localhost:4000"
+repo_url = "https://github.com/InviteInstitute/agent"
+repo_name = "InviteInstitute/agent"
+exclude_docs = "superpowers/"
+
+nav = [
+  { "Overview" = "index.md" },
+  { "Quickstart" = "quickstart.md" },
+  { "Concepts" = [
+    { "Architecture" = "concepts/architecture.md" },
+    { "How A Reply Is Made" = "concepts/how-a-reply-is-made.md" },
+    { "Environments" = "concepts/environments.md" },
+    { "Check-Ins" = "concepts/check-ins.md" },
+    { "ZANY In An ATLAS Study" = "concepts/atlas-study.md" },
+    { "Design Notes" = "design.md" },
+  ] },
+  { "Guides" = [
+    { "Using The Agent" = "guides/using-the-agent.md" },
+    { "Configuration" = "guides/configuration.md" },
+    { "Development" = "guides/development.md" },
+  ] },
+  { "Reference" = [
+    { "API Reference" = "reference/api.md" },
+  ] },
+]
+
+[project.markdown_extensions]
+admonition = {}
+attr_list = {}
+md_in_html = {}
+tables = {}
+toc.permalink = true
+# GitHub's heading anchors, the same as docs.inviteai.org.
+toc.slugify = { object = "pymdownx.slugs.slugify", kwds = { case = "lower" } }
+pymdownx.details = {}
+pymdownx.emoji.emoji_generator = "zensical.extensions.emoji.to_svg"
+pymdownx.emoji.emoji_index = "zensical.extensions.emoji.twemoji"
+pymdownx.highlight.anchor_linenums = true
+pymdownx.highlight.pygments_lang_class = true
+pymdownx.inlinehilite = {}
+pymdownx.superfences.custom_fences = [
+  { name = "mermaid", class = "mermaid", format = "pymdownx.superfences.fence_code_format" },
+]
+pymdownx.tabbed.alternate_style = true

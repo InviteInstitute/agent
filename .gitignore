@@ -22,3 +22,6 @@ avatar/build/
 server/models/
 
 .DS_Store
+
+# The docs as `zensical build` makes them
+site/
