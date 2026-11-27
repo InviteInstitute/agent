@@ -34,8 +34,8 @@ measurements, the pedagogy and the chat are the same in each. Only the log sourc
 | ZANY in an ATLAS study | `zany.inviteai.org/play/` for the student's study session | ATLAS-invite's study logs |
 
 In an ATLAS study nobody signs in. A researcher ticks "With the INVITE Agent" on a student, and
-ATLAS opens the agent for them with a signed ticket. [ZANY In An ATLAS Study](concepts/atlas-study.md)
-has the details.
+ATLAS opens the agent for them with a signed ticket.
+[ZANY In An ATLAS Study](concepts/atlas-study.md) has the details.
 
 ## What A Student Gets
 

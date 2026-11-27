@@ -68,6 +68,6 @@ The agent has no login. Before any `/v1` call, a browser solves a Cloudflare Tur
 and the server remembers it in a signed cookie for 12 hours. A study student's ticket from ATLAS
 passes the gate too, since ATLAS signed them in.
 
-That cookie is also the browser session the token budget counts against. By default a session may spend
-150,000 LLM tokens and the whole site 3,000,000 a day, check-ins included.
+That cookie is also the browser session the token budget counts against. By default a session may
+spend 150,000 LLM tokens and the whole site 3,000,000 a day, check-ins included.
 [Configuration](../guides/configuration.md#the-gate-and-the-budgets) has the settings.

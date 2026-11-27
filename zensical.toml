@@ -6,7 +6,7 @@
 #   zensical serve            # http://localhost:4000, reloads as you edit
 #   zensical build --strict   # what the docs bot runs; fails on a broken link or anchor
 #
-# docs/superpowers/ holds design specs and plans for the team, kept out of the site.
+# docs/superpowers/ holds design specs for the team, kept out of the site.
 
 [project]
 site_name = "INVITE Agent"

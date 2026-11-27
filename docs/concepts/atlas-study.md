@@ -28,18 +28,18 @@ ATLAS frames the agent only when all three hold.
 ## The Ticket
 
 Nobody signs in to the agent here. ATLAS puts a ticket in the link, after the `#`, so the browser
-doesn't send it when it loads the page. The ticket names the study, the study code, the participant ID and the study
-session, and it lasts 12 hours.
+doesn't send it when it loads the page. The ticket names the study, the study code, the participant
+ID and the study session, and it lasts 12 hours.
 
 It is the payload as base64url JSON, a dot, then the HMAC-SHA256 of that text in hex, signed with a
 secret only ATLAS and the agent hold. The agent calls it `AGENT_STUDY_SECRET`, and ATLAS calls it
 `agent_study_secret`. `server/agent/study.py` reads it.
 
 The page sends the ticket with every call, in the `X-Study-Ticket` header, or as `?ticket=` on the
-check-in stream and on the tutor's voice clips, where the browser or Unity can't set headers. The server takes the student from the ticket
-and never from the link. A request with a missing, forged or expired ticket, or one whose student
-doesn't match the ticket's, gets a 403. A valid ticket also passes the Turnstile gate, and the
-token budget counts per ticket.
+check-in stream and on the tutor's voice clips, where the browser or Unity can't set headers. The
+server takes the student from the ticket and never from the link. A request with a missing, forged
+or expired ticket, or one whose student doesn't match the ticket's, gets a 403. A valid ticket also
+passes the Turnstile gate, and the token budget counts per ticket.
 
 ## What The Student Sees
 
