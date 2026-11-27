@@ -20,8 +20,9 @@ make dev                    # Postgres, the API on :8005 and the client on :5173
 and the client as you edit.
 
 For an Ollama on your machine, set these in `.env`, with a model you have pulled. The API runs in
-a container, so it reaches your machine as `host.docker.internal`. On Linux, Ollama listens on
-127.0.0.1 only, so start it with `OLLAMA_HOST=0.0.0.0 ollama serve` for the container to reach it.
+a container, so it reaches your machine as `host.docker.internal`, which `compose.override.yml`
+maps to the host. On Linux, Ollama listens on 127.0.0.1 only, so start it with
+`OLLAMA_HOST=0.0.0.0 ollama serve` for the container to reach it.
 
 ```bash
 OPENAI_BASE_URL=http://host.docker.internal:11434/v1
