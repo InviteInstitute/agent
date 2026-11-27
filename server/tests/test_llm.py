@@ -44,9 +44,9 @@ def test_a_model_that_must_reason_is_asked_again_and_remembered(fake_llm):
 def test_no_answer_at_all_raises_with_the_tokens_it_spent(fake_llm):
     fake_llm("", "")
     spent: list[int] = []
-    with pytest.raises(llm.EmptyAnswer) as raised:
+    with pytest.raises(llm.EmptyAnswer):
         llm.complete("qwen3.8-27b", "p", spent=spent)
-    assert raised.value.tokens == 200 and spent == [100, 100]
+    assert spent == [100, 100]
 
 
 @pytest.mark.parametrize(

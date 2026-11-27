@@ -95,7 +95,6 @@ def synthesize(text: str) -> bytes:
 
 
 _PLACEHOLDER = re.compile(r"\s*\[[^\]]*\]")
-_SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
 
 
 def spoken(text: str) -> str:
@@ -105,7 +104,7 @@ def spoken(text: str) -> str:
 
 def chunks(text: str) -> list[str]:
     """The reply as the tutor says it, a sentence per clip."""
-    return [sentence for sentence in _SENTENCE_END.split(spoken(text)) if sentence]
+    return [sentence for sentence in llm.SENTENCE_END.split(spoken(text)) if sentence]
 
 
 # ponytail: one in-process cache of clip jobs keyed by the spoken text, and one worker, since

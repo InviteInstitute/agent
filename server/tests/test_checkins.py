@@ -182,6 +182,8 @@ def test_the_stream_sends_only_check_ins_made_after_it_opened(database, monkeypa
     assert len(events) == 1
     payload = json.loads(events[0].split("data: ", 1)[1])
     assert payload["body"] == "new one" and payload["trigger_type"] == "explorer"
+    # The same shape as the chat history, so the page reads both alike.
+    assert (payload["role"], payload["origin"], payload["thumb"]) == ("agent", "proactive", None)
     assert payload["id"] > before
 
 

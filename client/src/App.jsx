@@ -175,7 +175,7 @@ export default function App() {
   useEffect(() => {
     if (!live) return undefined;
     const source = api.checkins(student, (c) => {
-      const message = fromServer({ ...c, role: "agent", origin: "proactive", thumb: null });
+      const message = fromServer(c);
       setMessages((list) => (list.some((m) => m.id === message.id) ? list : [...list, message]));
     });
     return () => source?.close();

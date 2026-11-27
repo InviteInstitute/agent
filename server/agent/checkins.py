@@ -15,7 +15,6 @@ act on (e.g. inactive,explorer).
 from __future__ import annotations
 
 import logging
-import random
 import threading
 from collections import OrderedDict
 from dataclasses import dataclass, field
@@ -33,7 +32,7 @@ from agent.environments import Environment
 from agent.events import Event
 from agent.feedback import generate
 from agent.pedagogy import Feedback
-from agent.situation import current_stretch
+from agent.situation import current_stretch, snapshot
 
 log = logging.getLogger(__name__)
 
@@ -218,6 +217,7 @@ def check_in(
             session_id,
             events,
             playground,
+            snapshot(events, playground),
             FEEDBACK_FOR_TRIGGER[trigger["type"]],
             chat="student",
             behavior_fact=NEUTRAL_FACT[trigger["type"]],
@@ -225,15 +225,7 @@ def check_in(
             spent=spent,
         )
     finally:
-        if sum(spent):
-            db.record_llm_usage(
-                budget_key=BUDGET_KEY,
-                environment=environment.id,
-                student_key=student_key,
-                model=settings.model or config.navigator_model(),
-                origin="proactive",
-                tokens=sum(spent),
-            )
+        llm.record_spend(BUDGET_KEY, environment.id, student_key, settings, "proactive", spent)
     message_id = db.insert_message(
         environment=environment.id,
         student_key=student_key,
@@ -291,19 +283,17 @@ def tick() -> int:
 
 def run(stop: threading.Event) -> None:
     """The daemon: a tick every CHECKIN_INTERVAL_S seconds while check-ins go out, slowing
-    toward CHECKIN_IDLE_MAX_S while nothing happens, and backing off after failures."""
+    toward CHECKIN_IDLE_MAX_S while nothing happens, and waiting 30 seconds after a failure."""
     base = config.number("CHECKIN_INTERVAL_S", 5.0)
     ceiling = config.number("CHECKIN_IDLE_MAX_S", 30.0)
-    idle = failures = 0
+    idle = 0
     log.info("check-in daemon started (every %ss, up to %ss when quiet)", base, ceiling)
     while not stop.is_set():
         try:
             busy = tick() > 0
-            failures = 0
         except Exception:
-            failures += 1
-            log.warning("check-in tick failed (%d in a row)", failures, exc_info=True)
-            stop.wait(min(30.0, 0.5 * 2 ** min(failures, 6)) + random.uniform(0, 0.5))
+            log.warning("check-in tick failed", exc_info=True)
+            stop.wait(30)
             continue
         idle = 0 if busy else idle + 1
         stop.wait(base if busy else min(ceiling, base * 2 ** min(idle, 6)))

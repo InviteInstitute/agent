@@ -5,42 +5,31 @@ from __future__ import annotations
 
 import logging
 import threading
-from datetime import UTC, datetime, timedelta
+from datetime import datetime
 
 import httpx
 
 from agent import config, db
-from agent.environments import Environment, Milestone, Playground, fold
+from agent.environments import Environment, Milestone, Playground, fold, number, since_for
 from agent.events import parse_records, parse_time
 
 log = logging.getLogger(__name__)
 
 SOURCE = "invite-hub"
 PAGE = 500
-# The cursor is rewound this much, so a record landing on its boundary is read again rather
-# than missed. Reading a record twice keeps it once.
-OVERLAP = timedelta(seconds=2)
-
-
-def _number(parameters: dict, name: str) -> float:
-    value = parameters.get(name)
-    return float(value) if isinstance(value, (int, float)) else 0.0
-
 
 GO_MARS_MILESTONES = (
-    Milestone(
-        "move a sample out of the crater", lambda p: _number(p, "removed_samples_crater") > 0
-    ),
+    Milestone("move a sample out of the crater", lambda p: number(p, "removed_samples_crater") > 0),
     Milestone(
         "place a sample on the lab",
-        lambda p: _number(p, "samples_moved_lab") > 0 or _number(p, "samples_moved_lab_top") > 0,
+        lambda p: number(p, "samples_moved_lab") > 0 or number(p, "samples_moved_lab_top") > 0,
     ),
     Milestone("tilt the solar panel", lambda p: p.get("tilted_solarPanel") is True),
     Milestone("rescue the rover", lambda p: p.get("rover_rescued") is True),
     Milestone("lift the rocket ship upright", lambda p: p.get("lifted_rocketShip_upright") is True),
     Milestone(
         "remove fuel cells from the cradles",
-        lambda p: _number(p, "removed_fuel_cells_craters") > 0,
+        lambda p: number(p, "removed_fuel_cells_craters") > 0,
     ),
 )
 GO_MARS_GOAL = 5.0
@@ -209,14 +198,7 @@ def _page(client: httpx.Client, params: dict) -> list[dict]:
 def sync(student_id: str | None = None, class_code: str | None = None) -> int:
     """Read new logs from the Hub: everyone's since the cursor (and move it), or one student's
     (and leave it, so other students' unread logs stay unread)."""
-    position = db.cursor(SOURCE)
-    if position:
-        since = parse_time(position["at"]) - OVERLAP
-    elif student_id is None:
-        # A fresh database starts at the recency window, not years of history.
-        since = datetime.now(UTC) - timedelta(hours=config.student_recency_hours())
-    else:
-        since = None
+    since = since_for(SOURCE, student_id)
     params: dict = {"limit": PAGE}
     if since:
         params["dateFrom"] = since.isoformat()

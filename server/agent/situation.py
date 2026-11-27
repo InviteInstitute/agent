@@ -15,6 +15,9 @@ from enum import StrEnum
 from itertools import pairwise
 from statistics import mean
 
+from learner_models import extract_workspace_xml, segment_session
+from log_parser_delta_engine import generate_compact_prompt_from_project, generate_readable_text
+
 from agent.environments import Playground
 from agent.events import Event
 
@@ -219,7 +222,6 @@ def _cognition(
 
 def snapshot(events: list[Event], playground: Playground | None) -> Snapshot | None:
     """The snapshot of the session's current playground stretch, or None without events."""
-    from learner_models import segment_session
 
     stretch = current_stretch(events)
     if not stretch:
@@ -284,10 +286,9 @@ _PERSISTENCE_WORDS = {
 }
 
 
-def describe(events: list[Event], playground: Playground | None) -> str:
-    """The measured facts for the prompt, one per line, in words rather than internal labels.
-    "None" when there is nothing to go on."""
-    snap = snapshot(events, playground)
+def describe(snap: Snapshot | None, events: list[Event], playground: Playground | None) -> str:
+    """The measured facts for the prompt, one per line, in words rather than internal labels,
+    from the session's snapshot and events. "None" when there is nothing to go on."""
     if snap is None:
         return "None"
     lines = []
@@ -317,8 +318,6 @@ def describe(events: list[Event], playground: Playground | None) -> str:
 def current_program(events: list[Event]) -> str:
     """The student's newest workspace as compact pseudo-code: from the newest run, or the
     newest event with a project. Empty when no event carries one."""
-    from learner_models import extract_workspace_xml
-    from log_parser_delta_engine import generate_compact_prompt_from_project, generate_readable_text
 
     runs = [e.project for e in reversed(events) if e.event_type == "runProject" and e.project]
     project = next(iter(runs), None) or next(

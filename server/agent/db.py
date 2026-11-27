@@ -154,6 +154,22 @@ def students_held(environment: str) -> set[tuple[str | None, str]]:
 FORGOTTEN_WITH_STUDENT = ("triggers", "messages", "agent_settings")
 
 
+def _forget_keys(conn, environment: str, keys: list[str]) -> None:
+    """Delete what the agent keeps about these students besides their events, and keep their
+    token spending counted without them."""
+    if not keys:
+        return
+    for table in FORGOTTEN_WITH_STUDENT:
+        conn.execute(
+            f"DELETE FROM {table} WHERE environment = %s AND student_key = ANY(%s)",
+            (environment, keys),
+        )
+    conn.execute(
+        "UPDATE llm_usage SET student_key = NULL WHERE environment = %s AND student_key = ANY(%s)",
+        (environment, keys),
+    )
+
+
 def forget_students(environment: str, class_code: str | None, student_id: str | None) -> int:
     """Delete the events logged under a class code, a student ID or both (exactly as logged),
     then everything else the agent keeps about a student who has no events left: the chat, its
@@ -183,17 +199,7 @@ def forget_students(environment: str, class_code: str | None, student_id: str | 
                 (environment, key),
             ).fetchone()
         ]
-        if gone:
-            for table in FORGOTTEN_WITH_STUDENT:
-                conn.execute(
-                    f"DELETE FROM {table} WHERE environment = %s AND student_key = ANY(%s)",
-                    (environment, gone),
-                )
-            conn.execute(
-                "UPDATE llm_usage SET student_key = NULL"
-                " WHERE environment = %s AND student_key = ANY(%s)",
-                (environment, gone),
-            )
+        _forget_keys(conn, environment, gone)
         return deleted
 
 
@@ -205,15 +211,7 @@ def forget_student_key(environment: str, key: str) -> int:
         deleted = conn.execute(
             "DELETE FROM events WHERE environment = %s AND student_key = %s", (environment, key)
         ).rowcount
-        for table in FORGOTTEN_WITH_STUDENT:
-            conn.execute(
-                f"DELETE FROM {table} WHERE environment = %s AND student_key = %s",
-                (environment, key),
-            )
-        conn.execute(
-            "UPDATE llm_usage SET student_key = NULL WHERE environment = %s AND student_key = %s",
-            (environment, key),
-        )
+        _forget_keys(conn, environment, [key])
         return deleted
 
 
@@ -317,7 +315,8 @@ def proactive_after(environment: str, student_key: str, after_id: int) -> list[d
     with pool().connection() as conn, conn.cursor(row_factory=dict_row) as cur:
         cur.execute(
             """
-            SELECT id, body, response_id, trigger_type, created_at FROM messages
+            SELECT id, role, origin, body, response_id, trigger_type, created_at, NULL AS thumb
+            FROM messages
             WHERE environment = %s AND student_key = %s AND origin = 'proactive' AND id > %s
             ORDER BY id
             """,

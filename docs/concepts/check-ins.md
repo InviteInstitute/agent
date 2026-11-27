@@ -8,8 +8,8 @@ Check-ins message real students, so they are off until a site sets `CHECKINS_ENA
 ## The Daemon
 
 A background thread in the API runs a pass every `CHECKIN_INTERVAL_S` seconds (5 by default). It
-slows toward `CHECKIN_IDLE_MAX_S` (30) while no check-ins go out, and backs off after a failure.
-Each pass does this.
+slows toward `CHECKIN_IDLE_MAX_S` (30) while no check-ins go out, and waits 30 seconds after a
+failure. Each pass does this.
 
 1. It reads every environment's new logs.
 2. It looks at each student with an event in the last `STUDENT_RECENCY_HOURS` (24).

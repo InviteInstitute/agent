@@ -13,21 +13,22 @@ from __future__ import annotations
 import json
 import logging
 import threading
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
+from functools import partial
 from urllib.parse import urlencode
 
 import psycopg
 
 from agent import config, db
-from agent.environments import Environment, Milestone, Playground, fold
-from agent.events import parse_records, parse_time
+from agent.environments import Environment, Milestone, Playground, fold, number, since_for
+from agent.events import parse_records
 
 log = logging.getLogger(__name__)
 
 SOURCE = "atlas-link"
 PAGE = 1000
-OVERLAP = timedelta(seconds=2)
 FORGOTTEN = "zany_link_forgotten"
 RECONCILE_EVERY_S = 3600
 FRAME_URL = "https://vr.inviteai.org/"
@@ -100,11 +101,6 @@ BLOCKS = (
 )
 
 
-def _number(parameters: dict, name: str) -> float:
-    value = parameters.get(name)
-    return float(value) if isinstance(value, (int, float)) and not isinstance(value, bool) else 0.0
-
-
 # The most any Level 1 run cleared in VEX's logs. ponytail: one target for both levels, a target
 # per difficulty_level once Level 2 runs show what a full clear weighs there.
 CASTLE_FULL_CLEAR_KG = 8050.0
@@ -127,16 +123,14 @@ CASTLE = Playground(
     aliases=("CasteCrasherPlus",),
     milestones=(
         Milestone(
-            "push a piece of the castle into the water", lambda p: _number(p, "weight_cleared") > 0
+            "push a piece of the castle into the water", lambda p: number(p, "weight_cleared") > 0
         ),
         Milestone(
             "clear half the castle",
-            lambda p: _number(p, "weight_cleared") >= CASTLE_FULL_CLEAR_KG / 2,
+            lambda p: number(p, "weight_cleared") >= CASTLE_FULL_CLEAR_KG / 2,
         ),
     ),
-    progress=lambda p: round(
-        min(_number(p, "weight_cleared") / CASTLE_FULL_CLEAR_KG, 1.0) * 100, 2
-    ),
+    progress=lambda p: round(min(number(p, "weight_cleared") / CASTLE_FULL_CLEAR_KG, 1.0) * 100, 2),
 )
 
 CORAL_REEF = Playground(
@@ -155,7 +149,7 @@ CORAL_REEF = Playground(
     blocks=BLOCKS,
     log_name="CoralReefRescue",
     milestones=(
-        Milestone("collect a piece of trash", lambda p: _number(p, "trash_collected") > 0),
+        Milestone("collect a piece of trash", lambda p: number(p, "trash_collected") > 0),
         Milestone(
             "finish a run without touching the coral", lambda p: p.get("coral_damaged") is False
         ),
@@ -185,11 +179,27 @@ def _store() -> psycopg.Connection:
     return psycopg.connect(dsn, autocommit=True)
 
 
+def forget(class_code: str | None, student_id: str | None) -> int:
+    """Delete the agent's copy of the students whose link records ATLAS deleted (by class, by
+    student ID or both, as ATLAS's forget_link). Returns how many events went."""
+    return db.forget_students(ENVIRONMENT.id, class_code, student_id)
+
+
+def forget_study(class_code: str | None, student_id: str | None) -> int:
+    """Delete everything the agent keeps about a study student whose records ATLAS deleted,
+    the chat too, even when it has no events. Returns how many events went."""
+    if not class_code or not student_id:
+        return 0
+    key = STUDY_ENVIRONMENT.student_key(student_id, class_code)
+    return db.forget_student_key(STUDY.environment, key)
+
+
 @dataclass(frozen=True)
 class Store:
     """Where in ATLAS's log store an environment's students are: the table, the SQL for a
-    row's class code and student ID, the agent's cursor, and the notice ATLAS sends with the
-    class code and student ID under `notice_keys` when it deletes rows."""
+    row's class code and student ID, the agent's cursor, the notice ATLAS sends with the
+    class code and student ID under `notice_keys` when it deletes rows, and how the agent
+    forgets those students."""
 
     environment: str
     table: str
@@ -198,11 +208,19 @@ class Store:
     source: str
     channel: str
     notice_keys: tuple[str, str]
+    forget: Callable[[str | None, str | None], int]
 
 
 # Records from a link to vr.inviteai.org, keyed by the IDs typed in it.
 LINK = Store(
-    "zany", "link_record", "class_code", "student_id", SOURCE, FORGOTTEN, ("class_code", "student")
+    "zany",
+    "link_record",
+    "class_code",
+    "student_id",
+    SOURCE,
+    FORGOTTEN,
+    ("class_code", "student"),
+    forget,
 )
 # Records from an ATLAS study, which ZANY logs under the study code and the participant ID.
 STUDY = Store(
@@ -213,23 +231,14 @@ STUDY = Store(
     "atlas-study",
     "zany_forgotten",
     ("code", "participant"),
+    forget_study,
 )
-
-
-def _environment(store: Store) -> Environment:
-    return ENVIRONMENT if store is LINK else STUDY_ENVIRONMENT
 
 
 def read_store(store: Store, student_id: str | None = None, class_code: str | None = None) -> int:
     """Read new records: everyone's since the cursor (and move it, a page at a time, since
     pages come oldest first), or one student's (and leave it)."""
-    position = db.cursor(store.source)
-    if position:
-        since = parse_time(position["at"]) - OVERLAP
-    elif student_id is None:
-        since = datetime.now(UTC) - timedelta(hours=config.student_recency_hours())
-    else:
-        since = None  # one student's whole history, which the cursor has not reached yet
+    since = since_for(store.source, student_id)
     conditions, args = [], []
     if since:
         conditions.append("stored_at >= %s")
@@ -249,7 +258,7 @@ def read_store(store: Store, student_id: str | None = None, class_code: str | No
         )
         args += [[code or "" for code, _ in held], [student for _, student in held]]
 
-    environment = _environment(store)
+    environment = ENVIRONMENT if store is LINK else STUDY_ENVIRONMENT
     new = 0
     after: tuple[datetime, int] | None = None
     with _store() as conn:
@@ -277,33 +286,6 @@ def read_store(store: Store, student_id: str | None = None, class_code: str | No
                 return new
 
 
-def sync(student_id: str | None = None, class_code: str | None = None) -> int:
-    return read_store(LINK, student_id, class_code)
-
-
-def sync_study(student_id: str | None = None, class_code: str | None = None) -> int:
-    return read_store(STUDY, student_id, class_code)
-
-
-def forget(class_code: str | None, student_id: str | None) -> int:
-    """Delete the agent's copy of the students whose link records ATLAS deleted (by class, by
-    student ID or both, as ATLAS's forget_link). Returns how many events went."""
-    return db.forget_students(ENVIRONMENT.id, class_code, student_id)
-
-
-def forget_study(class_code: str | None, student_id: str | None) -> int:
-    """Delete everything the agent keeps about a study student whose records ATLAS deleted,
-    the chat too, even when it has no events. Returns how many events went."""
-    if not class_code or not student_id:
-        return 0
-    key = STUDY_ENVIRONMENT.student_key(student_id, class_code)
-    return db.forget_student_key(STUDY.environment, key)
-
-
-def _forget(store: Store, class_code: str | None, student_id: str | None) -> int:
-    return (forget if store is LINK else forget_study)(class_code, student_id)
-
-
 def reconcile_store(store: Store) -> int:
     """Forget every student the agent holds whose records are all gone from ATLAS."""
     with _store() as conn:
@@ -314,14 +296,10 @@ def reconcile_store(store: Store) -> int:
             )
         }
     return sum(
-        _forget(store, class_code, student_id)
+        store.forget(class_code, student_id)
         for class_code, student_id in db.students_held(store.environment)
         if (class_code or "", student_id) not in kept
     )
-
-
-def reconcile() -> int:
-    return reconcile_store(LINK)
 
 
 def watch_store(store: Store, stop: threading.Event) -> None:
@@ -343,19 +321,11 @@ def watch_store(store: Store, stop: threading.Event) -> None:
                     for notice in conn.notifies(timeout=5.0, stop_after=1):
                         who = json.loads(notice.payload or "{}")
                         klass, student = store.notice_keys
-                        gone = _forget(store, who.get(klass), who.get(student))
+                        gone = store.forget(who.get(klass), who.get(student))
                         log.info("ATLAS deleted %s rows, forgot %d events", store.table, gone)
         except Exception:
             log.warning("lost the ZANY log store, retrying in 30 s", exc_info=True)
             stop.wait(30)
-
-
-def watch(stop: threading.Event) -> None:
-    watch_store(LINK, stop)
-
-
-def watch_study(stop: threading.Event) -> None:
-    watch_store(STUDY, stop)
 
 
 def frame(student_id: str | None, class_code: str | None) -> str | None:
@@ -378,8 +348,8 @@ ENVIRONMENT = Environment(
     playgrounds=(CASTLE, CORAL_REEF, ART_CANVAS),
     frame=frame,
     student_key=student_key,
-    sync=sync,
-    watch=watch,
+    sync=partial(read_store, LINK),
+    watch=partial(watch_store, LINK),
 )
 
 # ZANY inside an ATLAS study, for a student a researcher gave the agent. ATLAS's ticket says
@@ -392,7 +362,7 @@ STUDY_ENVIRONMENT = Environment(
     playgrounds=ENVIRONMENT.playgrounds,
     frame=lambda student_id, class_code: None,
     student_key=student_key,
-    sync=sync_study,
-    watch=watch_study,
+    sync=partial(read_store, STUDY),
+    watch=partial(watch_store, STUDY),
     study=True,
 )

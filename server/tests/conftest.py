@@ -8,8 +8,11 @@ from types import SimpleNamespace
 
 import psycopg
 import pytest
+from fastapi.testclient import TestClient
 
-from agent import db, environments, llm
+from agent import db, environments, llm, speech
+from agent.app import app
+from agent.environments import vexcode_vr
 from agent.events import Event, parse_record
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -46,6 +49,19 @@ def database(monkeypatch):
     db.migrate()
     yield db
     db.close()
+
+
+@pytest.fixture
+def client(database, monkeypatch):
+    """The app on the test database, without the Invite Hub or the tutor's voice warming up."""
+    monkeypatch.setattr(speech, "warm", lambda: None)
+    # Environment is frozen, so its sync is swapped past the dataclass guard.
+    object.__setattr__(vexcode_vr.ENVIRONMENT, "sync", lambda *args, **kwargs: 0)
+    try:
+        with TestClient(app) as test_client:
+            yield test_client
+    finally:
+        object.__setattr__(vexcode_vr.ENVIRONMENT, "sync", vexcode_vr.sync)
 
 
 # ATLAS-invite's link_record, as atlas/zany_logs.py makes it.
@@ -88,18 +104,9 @@ def events_of(name: str) -> list[Event]:
     env = environments.all_environments()["vexcode-vr"]
     rows = [parse_record(r, env, str(r["id"])) for r in records(name)]
     rows.sort(key=lambda row: (row["event_ts"], int(row["source_id"])))
+    fields = [name for name in Event.__dataclass_fields__ if name != "id"]
     return [
-        Event(
-            id=int(row["source_id"]),
-            session_id=row["session_id"],
-            event_ts=row["event_ts"],
-            event_type=row["event_type"],
-            playground=row["playground"],
-            project=row["project"],
-            block_event=row["block_event"],
-            playground_data=row["playground_data"],
-            error_message=row["error_message"],
-        )
+        Event(id=int(row["source_id"]), **{name: row[name] for name in fields})
         for row in rows
         if row["playground"]
     ]

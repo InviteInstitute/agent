@@ -6,11 +6,8 @@ import wave
 
 import numpy as np
 import pytest
-from fastapi.testclient import TestClient
 
 from agent import speech
-from agent.app import app
-from agent.environments import vexcode_vr
 from tests.conftest import load
 
 STUDENT = "/v1/vexcode-vr/students/fixture_01_1"
@@ -21,15 +18,6 @@ def fresh_clips():
     speech.forget_clips()
     yield
     speech.forget_clips()
-
-
-@pytest.fixture
-def client(database, monkeypatch):
-    monkeypatch.setattr(speech, "warm", lambda: None)
-    object.__setattr__(vexcode_vr.ENVIRONMENT, "sync", lambda *args: 0)
-    with TestClient(app) as test_client:
-        yield test_client
-    object.__setattr__(vexcode_vr.ENVIRONMENT, "sync", vexcode_vr.sync)
 
 
 def test_a_reply_is_said_without_block_markup_a_sentence_per_clip():
