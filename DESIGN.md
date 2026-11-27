@@ -7,7 +7,6 @@ colors:
   vex-blue-soft: "#92bcec"
   gold: "#af883f"
   gold-button: "#b18c40"
-  gold-deep: "#937234"
   gold-edge: "#7d6026"
   gold-text: "#f6f1e6"
   reader: "#af127f"

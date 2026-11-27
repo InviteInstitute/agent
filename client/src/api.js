@@ -27,9 +27,10 @@ export function speechUrl(text) {
   return `/v1/tts?${query}`;
 }
 
-// The page at /study, which ATLAS frames for a student a researcher gave the agent.
-export function studyMode(path = window.location.pathname) {
-  return path.replace(/\/+$/, "") === "/study";
+// Whether the page is at /name, with or without a trailing slash. The Research view is at
+// /research, for the team only. ATLAS frames /study for a student a researcher gave the agent.
+export function onPath(name, path = window.location.pathname) {
+  return path.replace(/\/+$/, "") === `/${name}`;
 }
 
 // The student ATLAS's ticket names, from /study#ticket=... The server checks the signature,

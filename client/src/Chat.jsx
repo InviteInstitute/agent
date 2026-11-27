@@ -294,15 +294,11 @@ export default function Chat({
   return (
     <>
       <div className="chat dotted" aria-label="Conversation" role="log">
-        {messages.length ? null : guide ? (
+        {messages.length ? null : (
           <>
             <Guide guide={guide} />
             <Starters onPick={onSend} disabled={busy} />
           </>
-        ) : (
-          <p className="chat__empty">
-            Ask me about your project, or press Help and I'll look at your code.
-          </p>
         )}
         {messages.map((message) => (
           <Turn key={message.id} message={message} onRate={onRate} />

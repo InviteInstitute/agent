@@ -2,9 +2,9 @@ import { CircleAlert, Info, TriangleAlert } from "lucide-react";
 
 // The few shared pieces the page draws by hand, styled in app.css.
 
-export function Spinner({ label, className = "" }) {
+export function Spinner({ label }) {
   return (
-    <span className={`loading ${className}`} role="status">
+    <span className="loading" role="status">
       <span className="spinner" aria-hidden="true" />
       {label}
     </span>

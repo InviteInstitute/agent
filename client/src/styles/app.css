@@ -9,7 +9,6 @@
   --vex-blue-soft: #92bcec;
   --gold: #af883f;
   --gold-button: #b18c40;
-  --gold-deep: #937234;
   --gold-edge: #7d6026;
   --gold-text: #f6f1e6;
   --workspace: #f9f9f9;
@@ -23,11 +22,13 @@
   --grey-wash: #f1f4f8;
   --cream: #fff8df;
   --near-black: #141414;
+  --pill: #d6d6d6;
   --white: #ffffff;
   --reader: #af127f;
   --alert: #e8455a;
   --alert-ink: #8a1525;
   --done: #1f8a4c;
+  --unseen: #8a96a3;
   --dot: #d9dee5;
 
   font-family: "Open Sans", system-ui, sans-serif;
@@ -373,7 +374,7 @@ svg.lucide {
   min-height: 38px;
   padding: 0 12px;
   border: 0;
-  background: #d6d6d6;
+  background: var(--pill);
   color: var(--near-black);
   font-size: 13px;
   font-weight: 700;
@@ -632,12 +633,6 @@ svg.lucide {
   flex-shrink: 0;
 }
 
-.chat__empty {
-  margin: 0;
-  color: var(--muted);
-  font-size: 14px;
-}
-
 .turn {
   max-width: 86%;
   padding: 10px 14px;
@@ -864,7 +859,7 @@ svg.lucide {
   border: 0;
   border-radius: 6px;
   background: transparent;
-  color: #8a96a3;
+  color: var(--unseen);
 }
 
 .thumb:hover:not(:disabled) {
@@ -1069,12 +1064,6 @@ svg.lucide {
     Consolas,
     monospace;
   resize: vertical;
-}
-
-.research__label-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
 }
 
 .research details {
