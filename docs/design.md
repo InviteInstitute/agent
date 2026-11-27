@@ -63,8 +63,8 @@ The ticket is signed with a secret only ATLAS and the agent hold (`agent/study.p
 the study, the study code, the participant ID and the study session, and it lasts 12 hours.
 
 The page sends the ticket with every call (`X-Study-Ticket`, or `?ticket=` on the check-in
-stream). The server takes the student from it and never from the link, and a valid ticket also
-passes the Turnstile gate. The `zany-study` environment frames
+stream and on the tutor's voice clips). The server takes the student from it and never from the
+link, and a valid ticket also passes the Turnstile gate. The `zany-study` environment frames
 `zany.inviteai.org/play/?session=…` and reads that student's rows from `log_record`, keyed like
 ZANY's link students but kept apart from them. When ATLAS deletes a student's rows it sends
 `zany_forgotten`, and the agent deletes everything it keeps about them, the chat too.

@@ -106,6 +106,12 @@ goes back to production.
 and answers `{"text": "…"}`. It answers 404 when the site has no `TRANSCRIBE_MODEL`, 413 for a
 recording that is too long and 502 when the speech model fails.
 
+## The Tutor's Voice
+
+`GET /v1/tts?text=…` answers one spoken line as WAV, up to 500 characters of text. The agent page
+builds the link for each sentence of a reply and the tutor's player fetches it. A study student's
+page adds `?ticket=`, since the player can't set headers.
+
 ## Research Config
 
 `GET /v1/research/config` returns the defaults, the models a researcher can pick, the production
