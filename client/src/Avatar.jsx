@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { speechUrl } from "./api.js";
 
 // The 3D tutor beside the chat panel: the Unity page in /avatar/ renders only the character,
 // transparent over the coding environment, and says each reply with lip-sync and gestures. The
@@ -98,7 +99,10 @@ export default function Avatar({ panel, visible, utterance, muted, hush }) {
       return;
     }
     said.current.add(utterance.id);
-    post({ type: "speak", text: utterance.text, parts: utterance.parts, audio: !muted });
+    // One clip per sentence (the server's split), so the first plays while the rest are made.
+    // Muted, the character still gestures.
+    const parts = utterance.parts?.length ? utterance.parts : [utterance.text];
+    post({ type: "speak", text: utterance.text, audios: muted ? [] : parts.map(speechUrl) });
   }, [ready, utterance, muted, shown]);
 
   return (
