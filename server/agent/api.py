@@ -115,23 +115,25 @@ class SettingsRequest(BaseModel):
 Chat = Literal["student", "research"]
 
 
+def message_json(row: dict) -> dict:
+    """A chat message as the page reads it."""
+    return {
+        "id": row["id"],
+        "role": row["role"],
+        "origin": row["origin"],
+        "body": row["body"],
+        "response_id": str(row["response_id"]) if row["response_id"] else None,
+        "trigger_type": row["trigger_type"],
+        "thumb": row["thumb"],
+        "created_at": row["created_at"].isoformat(),
+    }
+
+
 def history(who: Student, session_id: str | None, chat: Chat) -> list[dict]:
     if not session_id:
         return []
     rows = db.chat_messages(who.environment.id, who.key, session_id, chat, HISTORY_LIMIT)
-    return [
-        {
-            "id": row["id"],
-            "role": row["role"],
-            "origin": row["origin"],
-            "body": row["body"],
-            "response_id": str(row["response_id"]) if row["response_id"] else None,
-            "trigger_type": row["trigger_type"],
-            "thumb": row["thumb"],
-            "created_at": row["created_at"].isoformat(),
-        }
-        for row in rows
-    ]
+    return [message_json(row) for row in rows]
 
 
 @router.get("/environments")
@@ -177,10 +179,7 @@ def sign_in(who: StudentDep, chat: Chat = "student") -> dict:
 def take_turn(who: StudentDep, body: TurnRequest, request: Request) -> dict:
     """A student's question (or Help) and the agent's reply to it."""
     key = gate.request_budget_key(request)
-    try:
-        gate.check(key)
-    except gate.OutOfTokens as error:
-        raise HTTPException(429, str(error)) from error
+    gate.check(key)
 
     env = who.environment
     chat = "research" if body.overrides else "student"
@@ -221,15 +220,7 @@ def take_turn(who: StudentDep, body: TurnRequest, request: Request) -> dict:
     finally:
         # A call that spent tokens and then failed counts too (llm.complete notes them before
         # it raises), or failing on purpose would be a free way to spend them.
-        if sum(spent):
-            db.record_llm_usage(
-                budget_key=key,
-                environment=env.id,
-                student_key=who.key,
-                model=settings.model or config.navigator_model(),
-                origin=chat,
-                tokens=sum(spent),
-            )
+        llm.record_spend(key, env.id, who.key, settings, chat, spent)
 
     response_id = uuid4()
     db.insert_message(
@@ -281,14 +272,7 @@ STREAM_POLL_S = 2.0
 
 
 def checkin_event(row: dict) -> str:
-    payload = {
-        "id": row["id"],
-        "body": row["body"],
-        "response_id": str(row["response_id"]) if row["response_id"] else None,
-        "trigger_type": row["trigger_type"],
-        "created_at": row["created_at"].isoformat(),
-        "speech": speech.chunks(row["body"]),
-    }
+    payload = {**message_json(row), "speech": speech.chunks(row["body"])}
     return f"event: checkin\ndata: {json.dumps(payload)}\n\n"
 
 
@@ -365,10 +349,7 @@ def transcribe(who: StudentDep, request: Request, audio: Annotated[UploadFile, F
     sees what the tutor heard."""
     if not speech.voice_on():
         raise HTTPException(404, "This site does not take spoken questions.")
-    try:
-        gate.check(gate.request_budget_key(request))
-    except gate.OutOfTokens as error:
-        raise HTTPException(429, str(error)) from error
+    gate.check(gate.request_budget_key(request))
     recording = audio.file.read(MAX_RECORDING_BYTES + 1)
     if not recording:
         raise HTTPException(400, "The recording was empty.")

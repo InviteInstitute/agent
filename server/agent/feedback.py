@@ -9,7 +9,7 @@ fact about what the student did (never the trigger's internal label) and no mess
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 
 from agent import config, db, llm
 from agent.environments import Environment, Playground
@@ -23,7 +23,14 @@ from agent.pedagogy import (
     feedback_names,
     parse_question_type,
 )
-from agent.situation import current_program, current_stretch, describe, has_active_run, snapshot
+from agent.situation import (
+    Snapshot,
+    current_program,
+    current_stretch,
+    describe,
+    has_active_run,
+    snapshot,
+)
 
 log = logging.getLogger(__name__)
 
@@ -79,13 +86,15 @@ def answer_question(
         return canned(wrong_playground(environment), "unknown_playground")
     if has_active_run(events):
         return canned(ACTIVE_RUN, "active_run")
+    snap = snapshot(events, playground)
     return generate(
         environment,
         student_key,
         session_id,
         events,
         playground,
-        feedback_for(snapshot(events, playground)),
+        snap,
+        feedback_for(snap),
         chat=chat,
         student_message=student_message,
         settings=settings,
@@ -117,6 +126,7 @@ def generate(
     session_id: str,
     events: list[Event],
     playground: Playground,
+    snap: Snapshot | None,
     feedback: set[Feedback],
     *,
     chat: str,
@@ -125,10 +135,10 @@ def generate(
     settings: llm.Settings = llm.PRODUCTION,
     spent: list[int],
 ) -> Reply:
-    """One grounded reply. Every LLM call's tokens are appended to `spent`, even when a call
+    """One grounded reply from the session's snapshot. Every LLM call's tokens are appended to `spent`, even when a call
     fails, so the caller can count them."""
     model = settings.model or config.navigator_model()
-    situation = describe(events, playground)
+    situation = describe(snap, events, playground)
     if behavior_fact:
         situation = f"{situation}\n\n{behavior_fact}"
     question = (
@@ -166,7 +176,7 @@ def generate(
             "playground": playground.name,
             "situation": situation,
             "prompt": prompt,
-            "settings": settings.as_dict(),
+            "settings": asdict(settings),
             "tokens": sum(spent),
         },
     )

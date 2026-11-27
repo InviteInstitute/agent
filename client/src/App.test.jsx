@@ -263,6 +263,17 @@ describe("pieces", () => {
   });
 });
 
+// A check-in as the server's stream sends it.
+const checkinFrom = (id, body) => ({
+  id,
+  role: "agent",
+  origin: "proactive",
+  body,
+  response_id: `r${id}`,
+  trigger_type: null,
+  thumb: null,
+});
+
 describe("check-ins", () => {
   it("shows a check-in the moment the server sends it, once", async () => {
     const sources = [];
@@ -297,7 +308,7 @@ describe("check-ins", () => {
     await screen.findByRole("region", { name: "Getting started" });
     expect(sources[0].url).toContain("/v1/zany/students/S01/stream?class_code=room-4");
 
-    const checkin = { id: 7, body: "Still there?", response_id: "r7", trigger_type: "inactive" };
+    const checkin = { ...checkinFrom(7, "Still there?"), trigger_type: "inactive" };
     act(() => sources[0].send(checkin));
     act(() => sources[0].send(checkin));
     expect(await screen.findAllByText("Still there?")).toHaveLength(1);
@@ -336,7 +347,7 @@ describe("check-ins", () => {
 
     await user.click(screen.getByRole("button", { name: "Tuck the INVITE Agent away" }));
     expect(screen.queryByRole("region", { name: "INVITE Agent chat" })).toBeNull();
-    act(() => sources[0].send({ id: 8, body: "Which piece first?", response_id: "r8" }));
+    act(() => sources[0].send(checkinFrom(8, "Which piece first?")));
     const note = await screen.findByRole("region", { name: "The INVITE Agent is checking in" });
     expect(note).toHaveTextContent("Which piece first?");
     expect(
@@ -348,7 +359,7 @@ describe("check-ins", () => {
     expect(screen.queryByRole("region", { name: "The INVITE Agent is checking in" })).toBeNull();
 
     await user.click(screen.getByRole("button", { name: "Tuck the INVITE Agent away" }));
-    act(() => sources[0].send({ id: 9, body: "Try a turn block.", response_id: "r9" }));
+    act(() => sources[0].send(checkinFrom(9, "Try a turn block.")));
     await screen.findByRole("region", { name: "The INVITE Agent is checking in" });
     await user.click(screen.getByRole("button", { name: "Later" }));
     expect(screen.queryByRole("region", { name: "The INVITE Agent is checking in" })).toBeNull();

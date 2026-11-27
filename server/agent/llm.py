@@ -7,11 +7,11 @@ import logging
 import re
 import threading
 import time
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 
 import openai
 
-from agent import config
+from agent import config, db
 
 log = logging.getLogger(__name__)
 
@@ -55,19 +55,12 @@ class Settings:
     max_tokens: int | None = None
     trim_reply: bool = True
 
-    def as_dict(self) -> dict:
-        return asdict(self)
-
 
 PRODUCTION = Settings()
 
 
 class EmptyAnswer(RuntimeError):
     """The model used its whole budget without an answer. The tokens still count."""
-
-    def __init__(self, message: str, tokens: int):
-        super().__init__(message)
-        self.tokens = tokens
 
 
 _client: openai.OpenAI | None = None
@@ -173,8 +166,28 @@ def complete(
         if answer:
             _reasoning_models.add(model)
     if not answer:
-        raise EmptyAnswer(f"{model} returned no answer (finish_reason={finish})", sum(spent))
+        raise EmptyAnswer(f"{model} returned no answer (finish_reason={finish})")
     return answer
+
+
+def record_spend(
+    budget_key: str,
+    environment: str,
+    student_key: str,
+    settings: Settings,
+    origin: str,
+    spent: list[int],
+) -> None:
+    """Count the tokens a reply spent against its budget, if it spent any."""
+    if sum(spent):
+        db.record_llm_usage(
+            budget_key=budget_key,
+            environment=environment,
+            student_key=student_key,
+            model=settings.model or config.navigator_model(),
+            origin=origin,
+            tokens=sum(spent),
+        )
 
 
 # --- keeping a reply clean and bite-sized ---
@@ -182,7 +195,7 @@ def complete(
 _LABEL = re.compile(r"^\s*[A-Z][A-Za-z]+(?:\s+[A-Za-z]+)?:\s*")
 _VOCATIVE = re.compile(r"^\s*(?:hi\s+student|hey\s+student|student)\s*[,:]\s*", re.IGNORECASE)
 _QUOTES = "\"'`"
-_SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
+SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
 _CLAUSE_BREAK = re.compile(r"(?:,|;|:|\s[\u2014\u2013-])\s")
 MIN_CLAUSE_WORDS = 6
 
@@ -207,7 +220,7 @@ def _end(text: str) -> str:
 def trim(text: str) -> str:
     """The first sentence, and the second when both fit MAX_WORDS. A first sentence over
     MAX_WORDS ends early at its last clause break that leaves a real sentence."""
-    sentences = [s for s in _SENTENCE_END.split(" ".join((text or "").split())) if s]
+    sentences = [s for s in SENTENCE_END.split(" ".join((text or "").split())) if s]
     if not sentences:
         return ""
     first = sentences[0]

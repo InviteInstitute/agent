@@ -2,30 +2,11 @@
 
 from datetime import timedelta
 
-import pytest
-from fastapi.testclient import TestClient
-
 from agent import db
-from agent.app import app
-from agent.environments import vexcode_vr
 from agent.feedback import ACTIVE_RUN, NO_EVENTS
 from tests.conftest import load
 
 STUDENT = "/v1/vexcode-vr/students/fixture_01_1"
-
-
-@pytest.fixture
-def client(database):
-    with TestClient(app) as test_client:
-        yield test_client
-
-
-@pytest.fixture(autouse=True)
-def no_hub():
-    # Environment is frozen, so its sync is swapped past the dataclass guard.
-    object.__setattr__(vexcode_vr.ENVIRONMENT, "sync", lambda *args, **kwargs: 0)
-    yield
-    object.__setattr__(vexcode_vr.ENVIRONMENT, "sync", vexcode_vr.sync)
 
 
 def test_environments_and_health(client):

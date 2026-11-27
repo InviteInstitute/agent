@@ -12,7 +12,7 @@ from agent import db
 from agent.app import app
 from agent.environments import zany
 from agent.feedback import wrong_playground
-from agent.situation import describe
+from agent.situation import describe, snapshot
 
 START = datetime(2026, 11, 20, 14, 0, tzinfo=UTC)
 
@@ -78,33 +78,33 @@ def a_castle_run(start=0, cleared=1200, **who):
 
 def test_everyone_sync_reads_new_records_and_moves_the_cursor(store):
     keep(store, *a_castle_run())
-    assert zany.sync() == 4
-    assert zany.sync() == 0
+    assert zany.ENVIRONMENT.sync() == 4
+    assert zany.ENVIRONMENT.sync() == 0
     assert db.cursor(zany.SOURCE)["seq"] == 4
     keep(store, record(10))
-    assert zany.sync() == 1
+    assert zany.ENVIRONMENT.sync() == 1
 
 
 def test_one_students_sync_leaves_the_cursor(store):
     keep(store, *a_castle_run(), *a_castle_run(10, student="S02"))
-    assert zany.sync("S01", "room-4") == 4
+    assert zany.ENVIRONMENT.sync("S01", "room-4") == 4
     assert db.cursor(zany.SOURCE) is None
     assert db.latest_session("zany", "room-4:s02") is None
 
 
 def test_the_same_student_id_in_two_classes_is_two_students(store):
     keep(store, *a_castle_run(), *a_castle_run(10, klass="room-5"))
-    zany.sync()
+    zany.ENVIRONMENT.sync()
     assert db.latest_session("zany", "room-4:s01") and db.latest_session("zany", "room-5:s01")
 
 
 def test_castle_progress_is_the_weight_cleared(store):
     keep(store, *a_castle_run(cleared=4025))
-    zany.sync()
+    zany.ENVIRONMENT.sync()
     session = db.latest_session("zany", "room-4:s01")
     events = db.session_events("zany", "room-4:s01", session)
     assert {e.playground for e in events} == {"Castle Crasher+"}
-    text = describe(events, zany.CASTLE)
+    text = describe(snapshot(events, zany.CASTLE), events, zany.CASTLE)
     assert text.startswith("Goal progress: 50%")
     assert (
         "Milestones done: push a piece of the castle into the water, clear half the castle." in text
@@ -125,7 +125,7 @@ def test_an_unknown_playground_names_all_three():
 
 def test_a_deletion_in_atlas_forgets_the_student_here(store):
     keep(store, *a_castle_run(), *a_castle_run(10, student="S02"))
-    zany.sync()
+    zany.ENVIRONMENT.sync()
     session = db.latest_session("zany", "room-4:s01")
     db.insert_message(
         environment="zany",
@@ -136,7 +136,7 @@ def test_a_deletion_in_atlas_forgets_the_student_here(store):
         body="help",
     )
     stop = threading.Event()
-    watcher = threading.Thread(target=zany.watch, args=(stop,))
+    watcher = threading.Thread(target=zany.ENVIRONMENT.watch, args=(stop,))
     watcher.start()
     try:
         # ATLAS's forget_link deletes, then notifies.
@@ -160,9 +160,9 @@ def test_a_deletion_in_atlas_forgets_the_student_here(store):
 
 def test_the_hourly_check_forgets_what_a_missed_notice_left(store):
     keep(store, *a_castle_run(), *a_castle_run(10, student="S02"))
-    zany.sync()
+    zany.ENVIRONMENT.sync()
     store.execute("DELETE FROM link_record WHERE student_id = 'S02'")
-    assert zany.reconcile() == 4
+    assert zany.reconcile_store(zany.LINK) == 4
     assert db.students_held("zany") == {("room-4", "S01")}
 
 

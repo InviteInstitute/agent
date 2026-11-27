@@ -10,6 +10,7 @@ import hashlib
 import logging
 
 import httpx
+from fastapi import HTTPException
 from itsdangerous import BadSignature, TimestampSigner
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
@@ -81,10 +82,6 @@ class TurnstileGate(BaseHTTPMiddleware):
 # --- token budgets ---
 
 
-class OutOfTokens(Exception):
-    pass
-
-
 def budget_key(cookie: str | None) -> str:
     """A browser session's id for its budget: a hash, so the cookie is never stored."""
     return hashlib.sha256((cookie or "no-session").encode()).hexdigest()[:32]
@@ -109,12 +106,13 @@ def usage(key: str) -> dict:
 
 
 def check(key: str) -> None:
-    """Refuse when this browser session or the whole site is out of tokens. A call already
-    running may go a little past a limit, the next one is refused."""
+    """Refuse with a 429 when this browser session or the whole site is out of tokens. A call
+    already running may go a little past a limit, the next one is refused."""
     if db.tokens_for_budget_key(key) >= session_limit():
-        raise OutOfTokens(
+        raise HTTPException(
+            429,
             f"This session has used its {session_limit():,} LLM tokens. "
-            "Start a new session later to keep going."
+            "Start a new session later to keep going.",
         )
     if db.tokens_last_day() >= daily_limit():
-        raise OutOfTokens("The agent has reached today's usage limit. Try again tomorrow.")
+        raise HTTPException(429, "The agent has reached today's usage limit. Try again tomorrow.")

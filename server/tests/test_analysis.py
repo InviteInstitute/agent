@@ -49,7 +49,8 @@ def test_each_scenario_gets_its_feedback(name):
 
 
 def test_the_situation_is_measured_facts_in_words():
-    text = describe(events_of("02_elaborate_a.ndjson"), GO_MARS)
+    events = events_of("02_elaborate_a.ndjson")
+    text = describe(snapshot(events, GO_MARS), events, GO_MARS)
     assert text.startswith("Goal progress:")
     assert "Milestones done:" in text or "Still to do:" in text
     assert "run(s) so far" in text
@@ -58,7 +59,7 @@ def test_the_situation_is_measured_facts_in_words():
 
 def test_no_events_means_no_snapshot_and_a_question():
     assert snapshot([], GO_MARS) is None
-    assert describe([], GO_MARS) == "None"
+    assert describe(None, [], GO_MARS) == "None"
     assert feedback_for(None) == {F.QUESTION}
 
 
@@ -68,4 +69,4 @@ def test_a_playground_with_no_score_skips_the_progress_rules():
     assert snap.progress_pct is None
     assert snap.cognition != Cognition.LONG_TERM_STALLED_PROGRESS
     assert snap.persistence == Persistence.IN_PROGRESS
-    assert not describe(events, None).startswith("Goal progress")
+    assert not describe(snap, events, None).startswith("Goal progress")

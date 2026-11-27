@@ -1,5 +1,6 @@
-"""Every setting the server reads from its environment, in one place. Each is read when it is
-asked for, so a test can set a variable and see it take effect at once."""
+"""The helpers every module reads its settings from the environment with, and the settings
+several modules share. Each is read when it is asked for, so a test can set a variable and see
+it take effect at once."""
 
 import os
 

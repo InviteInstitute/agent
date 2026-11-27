@@ -11,8 +11,14 @@ from __future__ import annotations
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from datetime import UTC, datetime, timedelta
 
-from agent import config
+from agent import config, db
+from agent.events import parse_time
+
+# A source's cursor is rewound this much, so a record landing on its boundary is read again
+# rather than missed. Reading a record twice keeps it once.
+OVERLAP = timedelta(seconds=2)
 
 
 def fold(text: str | None) -> str:
@@ -24,6 +30,23 @@ def squash(text: str) -> str:
     """A playground name with only its letters and digits, upper case: GO-Mars, GOMars and
     go_mars are all GOMARS."""
     return "".join(ch for ch in text.upper() if ch.isalnum())
+
+
+def number(parameters: dict, name: str) -> float:
+    """A numeric playgroundData parameter, or 0 when it is missing or not a number."""
+    value = parameters.get(name)
+    return float(value) if isinstance(value, (int, float)) and not isinstance(value, bool) else 0.0
+
+
+def since_for(source: str, student_id: str | None) -> datetime | None:
+    """Where a sync starts reading: just before the source's cursor, else the recency window
+    for everyone (not years of history), else nothing for one student, whose whole history
+    the cursor has not reached yet."""
+    if position := db.cursor(source):
+        return parse_time(position["at"]) - OVERLAP
+    if student_id is None:
+        return datetime.now(UTC) - timedelta(hours=config.student_recency_hours())
+    return None
 
 
 @dataclass(frozen=True)
