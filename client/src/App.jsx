@@ -1,27 +1,22 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Eye, EyeOff, LifeBuoy, LogOut, Minus, Volume2, VolumeX } from "lucide-react";
-import { api, readStored, setStudyTicket, studyMode, studyStudent, writeStored } from "./api.js";
+import { api, onPath, readStored, setStudyTicket, studyStudent, writeStored } from "./api.js";
 import Avatar, { avatarInstalled } from "./Avatar.jsx";
 import Chat from "./Chat.jsx";
 import { CheckinNote, EdgeTab } from "./Edge.jsx";
-import Panel from "./Panel.jsx";
+import Panel, { SHORT_WINDOW } from "./Panel.jsx";
 import Research, { PRODUCTION_SETTINGS, describeOverrides, overridesFor } from "./Research.jsx";
 import SignIn from "./SignIn.jsx";
 import VoiceButton, { canRecord } from "./VoiceButton.jsx";
 import { Notice, Spinner } from "./ui.jsx";
 
 const STUDENT_KEY = "agent:student";
-const SHORT_WINDOW = 720;
 const SETTINGS_KEY = "agent:settings";
 const MUTED_KEY = "agent:muted";
 const TUTOR_KEY = "agent:tutor";
 // While the agent cannot see a student's code yet, it checks again this often.
 const WAITING_POLL_MS = 10000;
 
-// The Research view is for the team, at /research. Students use / and never see it.
-export function researchMode(path = window.location.pathname) {
-  return path.replace(/\/+$/, "") === "/research";
-}
 const DELAYED = "The agent ran into a delay. Try asking again in a moment.";
 
 // A message as the server keeps it, the way the chat shows it.
@@ -41,7 +36,7 @@ export default function App() {
   // At /study the student is whoever ATLAS's ticket names. Anywhere else, a reload keeps the
   // student this tab signed in.
   const [student, setStudent] = useState(() => {
-    if (!studyMode()) return readStored(sessionStorage, STUDENT_KEY, null);
+    if (!onPath("study")) return readStored(sessionStorage, STUDENT_KEY, null);
     const named = studyStudent();
     setStudyTicket(named?.ticket ?? null);
     return named;
@@ -52,7 +47,7 @@ export default function App() {
   const [signInError, setSignInError] = useState("");
   const [busy, setBusy] = useState(false);
   // /research opens on the Research view, since that is what the team comes there for.
-  const [view, setView] = useState(() => (researchMode() ? "research" : "chat"));
+  const [view, setView] = useState(() => (onPath("research") ? "research" : "chat"));
   const [settings, setSettings] = useState(() => ({
     ...PRODUCTION_SETTINGS,
     ...readStored(localStorage, SETTINGS_KEY, {}),
@@ -76,7 +71,7 @@ export default function App() {
   const [hush, setHush] = useState(0);
   const [voiceError, setVoiceError] = useState("");
 
-  const [research] = useState(() => researchMode());
+  const [research] = useState(() => onPath("research"));
   // Research settings only ever apply in research mode, so a student never gets them.
   const overrides = research ? overridesFor(settings, config) : null;
   const custom = research && JSON.stringify(settings) !== JSON.stringify(PRODUCTION_SETTINGS);
@@ -440,7 +435,7 @@ export default function App() {
           onRect={setPanelRect}
         >
           {!signedIn ? (
-            studyMode() && !(student && !signInError) ? (
+            onPath("study") && !(student && !signInError) ? (
               <div className="sign-in">
                 <Notice kind="error" title="Couldn't start">
                   {signInError || "Open the agent from your study page."}

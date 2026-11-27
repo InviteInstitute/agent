@@ -94,15 +94,15 @@ export default function Avatar({ panel, visible, utterance, muted, hush }) {
   // is hidden is not said later.
   useEffect(() => {
     if (!ready || !utterance || said.current.has(utterance.id)) return;
-    if (!shown) {
-      said.current.add(utterance.id);
-      return;
-    }
     said.current.add(utterance.id);
+    if (!shown) return;
     // One clip per sentence (the server's split), so the first plays while the rest are made.
     // Muted, the character still gestures.
-    const parts = utterance.parts?.length ? utterance.parts : [utterance.text];
-    post({ type: "speak", text: utterance.text, audios: muted ? [] : parts.map(speechUrl) });
+    post({
+      type: "speak",
+      text: utterance.text,
+      audios: muted ? [] : utterance.parts.map(speechUrl),
+    });
   }, [ready, utterance, muted, shown]);
 
   return (

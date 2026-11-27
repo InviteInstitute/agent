@@ -10,7 +10,9 @@ const TAB = 40;
 // VEXcode VR's and ZANY's own bars take about the top 110px. The window opens below them, so
 // their buttons stay in reach.
 const TOOLBARS = 120;
-const SHORT = 720;
+// A window shorter than this, such as a Chromebook's, has no room for the chat beside the
+// playground.
+export const SHORT_WINDOW = 720;
 export const MIN_HEIGHT = 360;
 const EDGE = 12;
 const CORNERS = ["nw", "ne", "sw", "se"];
@@ -29,7 +31,7 @@ export function defaultRect(viewport = { width: window.innerWidth, height: windo
     x: Math.max(EDGE, viewport.width - width - TAB - EDGE),
     // A short window opens it right under the bars instead, so the playground's Start, Reset
     // and Step row along the bottom stays free.
-    y: viewport.height < SHORT ? TOOLBARS : Math.max(EDGE, viewport.height - height - 24),
+    y: viewport.height < SHORT_WINDOW ? TOOLBARS : Math.max(EDGE, viewport.height - height - 24),
     width,
     height,
   };
@@ -78,11 +80,11 @@ export default function Panel({
     };
     report();
     window.addEventListener("resize", report);
-    const observer = "ResizeObserver" in window ? new ResizeObserver(report) : null;
-    if (element.current) observer?.observe(element.current);
+    const observer = new ResizeObserver(report);
+    if (element.current) observer.observe(element.current);
     return () => {
       window.removeEventListener("resize", report);
-      observer?.disconnect();
+      observer.disconnect();
     };
   }, [rect, resizable, onRect]);
 
