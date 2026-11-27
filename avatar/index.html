@@ -38,8 +38,6 @@
       const framing = query.get("framing") || "1";
       const parent = window.parent !== window ? window.parent : null;
       const tell = (message) => parent?.postMessage(message, location.origin);
-      // Speech comes from the agent's own API, same-origin, so the bot-check cookie goes along.
-      const clip = (text) => `/v1/tts?text=${encodeURIComponent(text)}`;
       let unity = null;
       let started = false;
 
@@ -47,10 +45,9 @@
         if (event.origin !== location.origin || event.source !== parent || !unity) return;
         const data = event.data || {};
         if (data.type === "speak" && data.text) {
-          // One clip per sentence (the server's split), so the first plays while the rest are
-          // made. Muted, the character still gestures.
-          const parts = Array.isArray(data.parts) && data.parts.length ? data.parts : [data.text];
-          const audios = data.audio === false ? [] : parts.map(clip);
+          // The agent page sends the speech links (client/src/api.js speechUrl). They are
+          // same-origin, so the bot-check cookie goes along.
+          const audios = Array.isArray(data.audios) ? data.audios : [];
           unity.SendMessage(CHATLLM, "Speak", JSON.stringify({ text: data.text, audios }));
         }
         if (data.type === "hush") unity.SendMessage(CHATLLM, "Hush");

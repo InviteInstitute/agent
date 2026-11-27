@@ -20,6 +20,13 @@ export function setStudyTicket(value) {
   ticket = value;
 }
 
+// One spoken line from the tutor's voice. The tutor's player fetches it without headers, so a study
+// student's ticket rides in the link, as on the check-in stream.
+export function speechUrl(text) {
+  const query = new URLSearchParams({ text, ...(ticket ? { ticket } : {}) });
+  return `/v1/tts?${query}`;
+}
+
 // The page at /study, which ATLAS frames for a student a researcher gave the agent.
 export function studyMode(path = window.location.pathname) {
   return path.replace(/\/+$/, "") === "/study";

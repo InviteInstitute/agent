@@ -36,7 +36,7 @@ secret only ATLAS and the agent hold. The agent calls it `AGENT_STUDY_SECRET`, a
 `agent_study_secret`. `server/agent/study.py` reads it.
 
 The page sends the ticket with every call, in the `X-Study-Ticket` header, or as `?ticket=` on the
-check-in stream, where a browser can't set headers. The server takes the student from the ticket
+check-in stream and on the tutor's voice clips, where the browser or Unity can't set headers. The server takes the student from the ticket
 and never from the link. A request with a missing, forged or expired ticket, or one whose student
 doesn't match the ticket's, gets a 403. A valid ticket also passes the Turnstile gate, and the
 token budget counts per ticket.
