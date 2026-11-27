@@ -85,8 +85,11 @@ newest check-in, so a new connection replays nothing. Each check-in is an event 
 
 ```text
 event: checkin
-data: {"id": 57, "body": "…", "response_id": "…", "trigger_type": "inactive", "created_at": "…", "speech": ["…"]}
+data: {"id": 57, "role": "agent", "origin": "proactive", "body": "…", "response_id": "…", "trigger_type": "inactive", "thumb": null, "created_at": "…", "speech": ["…"]}
 ```
+
+The data is a chat message in the same shape as the messages the sign-in returns, plus `speech` with
+one clip per sentence.
 
 A comment line every two seconds keeps proxies from closing it. While it is open, the student counts
 as having the page open, so the daemon may check in with them. A study student's page passes the
