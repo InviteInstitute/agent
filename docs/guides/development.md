@@ -85,7 +85,8 @@ zensical build --strict   # fails on a broken link or anchor
 
 `.github/workflows/docs.yml` keeps the pages up to date on every push to `main`. It calls the docs
 bot that zany, atlas-invite and lm-dashboard share, which lives in InviteInstitute/lm-dashboard as
-`.github/workflows/docs-bot.yml` and `scripts/docs_sync.py`.
+`.github/workflows/docs-bot.yml` and `scripts/docs_sync.py`. This repo's settings for it are in
+`.github/docs-bot.toml`.
 
 1. The bot sends the diff of the push, the code and the current docs to NCSA's Lumen. It asks
    glm-5.3 first, then glm, then deepseek-v4.1, one try each. Its instructions are the writing rules and skills from [Maharsh17/claude-config](https://github.com/Maharsh17/claude-config),
