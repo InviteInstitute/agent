@@ -83,11 +83,12 @@ zensical serve            # http://localhost:4000, reloads as you edit
 zensical build --strict   # fails on a broken link or anchor
 ```
 
-`.github/workflows/docs.yml` keeps the pages up to date on every push to `main`.
+`.github/workflows/docs.yml` keeps the pages up to date on every push to `main`. It calls the docs
+bot that zany, atlas-invite and lm-dashboard share, which lives in InviteInstitute/lm-dashboard as
+`.github/workflows/docs-bot.yml` and `scripts/docs_sync.py`.
 
-1. `scripts/docs_sync.py` sends the diff of the push, the code and the current docs to NCSA's
-   Lumen. It asks glm-5.3 first, then glm, then deepseek-v4.1, one try each. Its instructions are
-   the writing rules and skills from [Maharsh17/claude-config](https://github.com/Maharsh17/claude-config),
+1. The bot sends the diff of the push, the code and the current docs to NCSA's Lumen. It asks
+   glm-5.3 first, then glm, then deepseek-v4.1, one try each. Its instructions are the writing rules and skills from [Maharsh17/claude-config](https://github.com/Maharsh17/claude-config),
    read fresh on each run. A push that only changes the docs skips the call.
 2. The model returns only the pages that the change made wrong or incomplete. The script writes
    them, and `zensical build --strict` checks that every link and page still holds.
@@ -97,12 +98,12 @@ The job needs the repository secret `LUMEN_API_KEY`. It runs one push at a time,
 never race to commit the docs. A push the bot makes starts no workflow, and the deploy skips a
 docs-only commit.
 
-The settings at the top of `scripts/docs_sync.py` say which pages the bot may write. To try it on
-your machine, set `LUMEN_API_KEY` and run it. It only edits files in your checkout, so review them
-with `git diff`.
+`.github/docs-bot.toml` says which pages the bot may write and which code it reads. To try it on
+your machine, set `LUMEN_API_KEY` and run lm-dashboard's script from the root of this repo. It only
+edits files in your checkout, so review them with `git diff`.
 
 ```bash
-python scripts/docs_sync.py --style ../claude-config
+python ../lm-dashboard/scripts/docs_sync.py --style ../claude-config
 ```
 
 Edit the docs by hand whenever you like. The bot works from what is on `main`, so it keeps your
