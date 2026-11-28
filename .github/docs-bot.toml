@@ -1,0 +1,33 @@
+# The docs bot's settings for agent. InviteInstitute/lm-dashboard's scripts/docs_sync.py lists
+# every key and its default.
+
+about = """
+the INVITE Agent, a tutor that floats a chat over a middle school student's block-based coding
+space (VEXcode VR or ZANY) and gives short hints grounded in their logs. Its docs are the
+Markdown pages in docs/, with their nav in zensical.toml, plus the README.md on GitHub. They are
+published as the INVITE Agent section of docs.inviteai.org. Readers are the researchers who run
+studies with it and the developers who run and change it, technical and semi-technical."""
+new_page_rule = "Add each one to the nav in zensical.toml."
+
+writable = ["docs/*.md", "README.md", "zensical.toml"]
+# The design specs and plans are records of a decision, kept as written.
+protected = ["docs/superpowers/*"]
+
+code_paths = ["server/agent", "server/migrations", "client/src", "avatar", "scripts", ".github/workflows"]
+code_files = [
+  "Makefile",
+  "compose.yml",
+  "compose.override.yml",
+  ".env.example",
+  "server/pyproject.toml",
+  "server/Dockerfile",
+  "PRODUCT.md",
+]
+code_skip = '(\.test\.|/test/|\.css$|\.scss$|\.png$|\.svg$|\.ico$|\.html$)'
+# The learner-model engine lives in a submodule, which `git ls-tree` does not list. The docs
+# quote its trigger thresholds, so its constants go in too.
+engine_files = [
+  "server/vendor/agent-lm-packages/learner_models/constants.py",
+  "server/vendor/agent-lm-packages/learner_models/README.md",
+]
+diff_skip = [":(exclude)docs", ":(exclude)*.md", ":(exclude)zensical.toml", ":(exclude)*lock*"]
