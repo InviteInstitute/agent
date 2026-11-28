@@ -25,3 +25,6 @@ server/models/
 
 # The docs as `zensical build` makes them
 site/
+
+# The impeccable tool's generated design sidecar. DESIGN.md is the written record.
+.impeccable/design.json
